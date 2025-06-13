@@ -18,6 +18,12 @@ export default function Hero() {
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent z-30"></div>
       {/* Conteúdo */}
       <div className="relative z-40 max-w-5xl mx-auto">
+        <img
+          src="/images/logoleituranova-hero.jpg"
+          alt="Leitura Nova Logo"
+          className="mx-auto mb-6 w-40 h-auto"
+          draggable={false}
+        />
         <h1 className="text-4xl sm:text-6xl font-bold mb-6 leading-tight animate-fade-in text-white drop-shadow-lg">
           Gestão Inteligente de Água e Gás para o Seu Condomínio
         </h1>
