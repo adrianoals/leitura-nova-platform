@@ -11,7 +11,8 @@ export default function Hero() {
       }}
     >
       {/* Overlay azul translúcido */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-700/80 via-blue-600/70 to-cyan-600/60 z-0"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-[#3498db]/80 via-[#5dade2]/70 to-[#85c1e9]/60 z-0"></div>
+
       {/* Grid overlay */}
       <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10 z-10"></div>
       {/* Gradiente inferior */}
