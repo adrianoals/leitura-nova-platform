@@ -10,12 +10,12 @@ export default function Testimonials() {
   return (
     <section id="depoimentos" className="py-20 px-4 bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
       <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5"></div>
-      <h2 className="text-3xl font-bold text-center mb-12 text-blue-600 relative">O que Nossos Clientes Dizem</h2>
+      <h2 className="text-3xl font-bold text-center mb-12 text-brand-blue relative">O que Nossos Clientes Dizem</h2>
       <div className="max-w-3xl mx-auto space-y-8 relative">
         {testimonials.map((testimonial, index) => (
           <Card key={index}>
             <p className="text-gray-700 text-lg italic mb-4">"{testimonial.quote}"</p>
-            <footer className="text-blue-600 font-semibold">— {testimonial.author}</footer>
+            <footer className="text-brand-blue font-semibold">— {testimonial.author}</footer>
           </Card>
         ))}
       </div>

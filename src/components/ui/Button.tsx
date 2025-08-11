@@ -12,8 +12,8 @@ export default function Button({ children, variant = 'primary', href, className 
   const baseStyles = "group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105";
   
   const variants = {
-    primary: "bg-white text-blue-700",
-    secondary: "border-2 border-white text-white hover:bg-white hover:text-blue-700"
+    primary: "bg-white text-brand-blue",
+    secondary: "border-2 border-white text-white hover:bg-white hover:text-brand-blue"
   };
 
   const buttonContent = (
