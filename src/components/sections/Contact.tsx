@@ -2,7 +2,8 @@ import Button from '../ui/Button';
 
 // Número WhatsApp da empresa: 55 + DDD + 9 dígitos (somente números)
 const WHATSAPP_NUMBER = '5511933620044';
-const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
+const WHATSAPP_MESSAGE = 'Olá! Gostaria de solicitar uma avaliação para gestão de consumo de água e gás do meu condomínio.';
+const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
 
 export default function Contact() {
   return (
