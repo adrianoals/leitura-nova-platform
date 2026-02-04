@@ -19,6 +19,7 @@ export interface Differentiator {
 
 export interface SocialLink {
   name: string;
-  color: string;
   href: string;
+  icon?: IconType;
+  color?: string;
 } 
