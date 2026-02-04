@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { FaLinkedinIn, FaInstagram, FaFacebookF, FaPhone, FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaInstagram, FaFacebookF, FaPhone, FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
 import { SocialLink } from '@/types';
 
 const legalLinks = [
@@ -9,8 +9,8 @@ const legalLinks = [
 ];
 
 const socialLinks: SocialLink[] = [
-  { name: "Instagram", href: "#", icon: FaInstagram },
-  { name: "Facebook", href: "#", icon: FaFacebookF },
+  { name: "Instagram", href: "https://www.instagram.com/leituranova_medicao/", icon: FaInstagram },
+  { name: "Facebook", href: "https://web.facebook.com/profile.php?id=61569989404433&locale=pt_BR", icon: FaFacebookF },
 ];
 
 export default function Footer() {

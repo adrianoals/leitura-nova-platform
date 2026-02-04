@@ -40,15 +40,16 @@ export default function Differentiators() {
           </p>
         </header>
 
-        {/* Cards grid */}
-        <div className="mx-auto mt-16 sm:mt-20 lg:mt-24 grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
+        {/* Cards grid — max 2 per row, centered */}
+        <div className="mx-auto mt-16 sm:mt-20 lg:mt-24 grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 max-w-4xl justify-items-center">
           {differentiators.map((diferencial, index) => {
             const Icon = diferencial.icon;
-            const isFifth = index === 4;
+            const isLast = index === differentiators.length - 1;
+            const isOddCount = differentiators.length % 2 === 1;
             return (
               <article
                 key={diferencial.title}
-                className={`group relative flex flex-col rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80 transition-all duration-300 hover:shadow-lg hover:ring-vscode-blue/30 hover:-translate-y-1 ${isFifth ? 'lg:col-start-2' : ''} ${delayClasses[index % delayClasses.length]}`}
+                className={`group relative flex w-full max-w-md flex-col rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80 transition-all duration-300 hover:shadow-lg hover:ring-vscode-blue/30 hover:-translate-y-1 ${isLast && isOddCount ? 'sm:col-span-2 sm:max-w-md sm:justify-self-center' : ''} ${delayClasses[index % delayClasses.length]}`}
               >
                 {/* Icon */}
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-vscode-blue text-white shadow-lg shadow-vscode-blue/25 transition-transform duration-300 group-hover:scale-110 group-hover:shadow-vscode-blue/30">
