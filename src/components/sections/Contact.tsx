@@ -1,5 +1,9 @@
 import Button from '../ui/Button';
 
+// Número WhatsApp da empresa: 55 + DDD + 9 dígitos (somente números)
+const WHATSAPP_NUMBER = '5511933620044';
+const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
+
 export default function Contact() {
   return (
     <section id="contato" className="py-20 px-4 text-center bg-gradient-to-br from-vscode-blue-dark via-vscode-blue to-vscode-blue-light text-white relative overflow-hidden">
@@ -7,7 +11,7 @@ export default function Contact() {
       <div className="max-w-3xl mx-auto relative">
         <h2 className="text-3xl font-bold mb-6">Pronto para Transformar a Gestão de Consumo do Seu Condomínio?</h2>
         <p className="text-xl mb-8 text-blue-100/90">Solicite uma avaliação gratuita e descubra como economizar e trazer mais transparência para seus moradores.</p>
-        <Button href="mailto:contato@leituranova.com.br" variant="primaryVscode">Falar com um Especialista</Button>
+        <Button href={WHATSAPP_URL} variant="primaryVscode">Falar com um Especialista</Button>
       </div>
     </section>
   );
