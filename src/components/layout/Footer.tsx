@@ -9,7 +9,6 @@ const legalLinks = [
 ];
 
 const socialLinks: SocialLink[] = [
-  { name: "LinkedIn", href: "#", icon: FaLinkedinIn },
   { name: "Instagram", href: "#", icon: FaInstagram },
   { name: "Facebook", href: "#", icon: FaFacebookF },
 ];
@@ -49,31 +48,31 @@ export default function Footer() {
             <ul className="mt-4 space-y-4">
               <li>
                 <a
-                  href="tel:+5500000000000"
+                  href="tel:+5511933620044"
                   className="inline-flex items-center gap-3 text-sm text-slate-400 hover:text-vscode-blue transition-colors"
                 >
                   <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-800 text-vscode-blue">
                     <FaPhone className="h-4 w-4" />
                   </span>
-                  (XX) XXXX-XXXX
+                  (11) 93362-0044
                 </a>
               </li>
               <li>
                 <a
-                  href="mailto:contato@leitura-nova.com.br"
+                  href="mailto:contato@leituranova.com.br"
                   className="inline-flex items-center gap-3 text-sm text-slate-400 hover:text-vscode-blue transition-colors"
                 >
                   <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-800 text-vscode-blue">
                     <FaEnvelope className="h-4 w-4" />
                   </span>
-                  contato@leitura-nova.com.br
+                  contato@leituranova.com.br
                 </a>
               </li>
               <li className="inline-flex items-start gap-3 text-sm text-slate-400">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-vscode-blue">
                   <FaMapMarkerAlt className="h-4 w-4 mt-0.5" />
                 </span>
-                <span>Endereço comercial</span>
+                <span>Av. Esperança, 827, Sala 01, Centro, Guarulhos, SP</span>
               </li>
             </ul>
           </div>

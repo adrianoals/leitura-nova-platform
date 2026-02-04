@@ -2,7 +2,7 @@ import Card from '../ui/Card';
 import { Testimonial } from '@/types';
 
 const testimonials: Testimonial[] = [
-  { quote: "Desde que implantamos a Leitura Nova, tivemos uma queda de 25% na conta de água. A plataforma é super intuitiva!", author: "Síndico do Condomínio Jardim das Flores" },
+  { quote: "Desde que implantamos os equipamentos de medição à distância nos hidrômetros do condomínio, ficou muito mais simples para os moradores entenderem suas contas de água.", author: "Síndico do Condomínio Jardim das Flores" },
   { quote: "O suporte técnico resolve tudo muito rápido. Recomendo para qualquer síndico que queira praticidade.", author: "Síndica do Residencial Vista Bela" }
 ];
 
