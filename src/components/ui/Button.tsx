@@ -3,7 +3,7 @@ import { ReactNode } from 'react';
 
 interface ButtonProps {
   children: ReactNode;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'primaryVscode' | 'secondary';
   href?: string;
   className?: string;
 }
@@ -13,6 +13,7 @@ export default function Button({ children, variant = 'primary', href, className 
   
   const variants = {
     primary: "bg-white text-brand-blue",
+    primaryVscode: "bg-white text-vscode-blue hover:bg-blue-50",
     secondary: "border-2 border-white text-white hover:bg-white hover:text-brand-blue"
   };
 

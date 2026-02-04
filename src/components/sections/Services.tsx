@@ -16,15 +16,15 @@ const services: Service[] = [
 
 export default function Services() {
   return (
-    <section id="servicos" className="bg-gradient-to-br from-brand-blue to-cyan-500 py-20 sm:py-32 text-white relative overflow-hidden">
+    <section id="servicos" className="bg-gradient-to-br from-vscode-blue-dark via-vscode-blue to-vscode-blue-light py-20 sm:py-32 text-white relative overflow-hidden">
       <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
       <div className="mx-auto max-w-7xl px-6 lg:px-8 relative">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-base font-semibold leading-7 text-white">Nossos Serviços</h2>
+          <h2 className="text-base font-semibold leading-7 text-blue-100">Nossos Serviços</h2>
           <p className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Soluções Completas para seu Condomínio
           </p>
-          <p className="mt-6 text-lg leading-8 text-blue-100">
+          <p className="mt-6 text-lg leading-8 text-blue-100/90">
             Oferecemos um portfólio completo de serviços para garantir uma gestão eficiente e transparente do consumo de água e gás.
           </p>
         </div>

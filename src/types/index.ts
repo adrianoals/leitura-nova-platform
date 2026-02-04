@@ -12,6 +12,7 @@ export interface Testimonial {
 }
 
 export interface Differentiator {
+  icon: IconType;
   title: string;
   description: string;
 }
