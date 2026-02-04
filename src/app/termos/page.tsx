@@ -10,8 +10,7 @@ const CNPJ = '53.589.608/0001-60';
 
 export default function TermosPage() {
   return (
-    <div className="min-h-screen bg-white text-slate-800">
-      <div className="mx-auto max-w-3xl px-6 py-12 sm:py-16">
+    <div className="mx-auto max-w-3xl px-6 py-12 sm:py-16">
         <Link
           href="/"
           className="inline-flex items-center text-sm font-medium text-vscode-blue hover:underline mb-10"
@@ -91,7 +90,6 @@ export default function TermosPage() {
             ← Voltar ao início
           </Link>
         </div>
-      </div>
     </div>
   );
 }
