@@ -2,8 +2,9 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Termos de Uso | Leitura Nova',
+  title: 'Termos de Uso',
   description: 'Termos de uso do site e dos serviços da Leitura Nova.',
+  alternates: { canonical: '/termos' },
 };
 
 const CNPJ = '53.589.608/0001-60';
@@ -68,7 +69,7 @@ export default function TermosPage() {
           <section className="mb-10">
             <h2 className="text-xl font-semibold text-slate-900 mt-8 mb-4">5. Contato e alterações</h2>
             <p>
-              Para dúvidas sobre estes termos, entre em contato por e-mail: contato@leitura-nova.com.br. A Leitura Nova
+              Para dúvidas sobre estes termos, entre em contato por e-mail: contato@leituranova.com.br. A Leitura Nova
               reserva-se o direito de alterar estes Termos de Uso a qualquer momento, com divulgação no próprio site.
             </p>
           </section>

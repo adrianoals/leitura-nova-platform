@@ -2,8 +2,9 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Política de Privacidade | Leitura Nova',
+  title: 'Política de Privacidade',
   description: 'Política de privacidade e proteção de dados da Leitura Nova.',
+  alternates: { canonical: '/privacidade' },
 };
 
 const CNPJ = '53.589.608/0001-60';
@@ -83,7 +84,7 @@ export default function PrivacidadePage() {
               <li>Revogar o consentimento, quando este for a base do tratamento.</li>
             </ul>
             <p className="mt-4">
-              Para exercer esses direitos, entre em contato: contato@leitura-nova.com.br.
+              Para exercer esses direitos, entre em contato: contato@leituranova.com.br.
             </p>
           </section>
 
@@ -100,7 +101,7 @@ export default function PrivacidadePage() {
             <h2 className="text-xl font-semibold text-slate-900 mt-8 mb-4">7. Alterações e contato</h2>
             <p>
               Esta política pode ser atualizada. Alterações relevantes serão divulgadas no site. Dúvidas ou solicitações
-              relativas à privacidade podem ser enviadas para contato@leitura-nova.com.br.
+              relativas à privacidade podem ser enviadas para contato@leituranova.com.br.
             </p>
           </section>
         </article>
