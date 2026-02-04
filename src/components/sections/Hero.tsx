@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Button from '../ui/Button';
 
 export default function Hero() {
@@ -19,11 +20,14 @@ export default function Hero() {
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent z-30"></div>
       {/* Conteúdo */}
       <div className="relative z-40 max-w-5xl mx-auto">
-        <img
+        <Image
           src="/images/logoleituranova-hero.jpg"
           alt="Leitura Nova Logo"
+          width={160}
+          height={80}
           className="mx-auto mb-6 w-40 h-auto"
           draggable={false}
+          priority
         />
         <h1 className="text-4xl sm:text-6xl font-bold mb-6 leading-tight animate-fade-in text-white drop-shadow-lg">
           Gestão Inteligente de Água e Gás para o Seu Condomínio

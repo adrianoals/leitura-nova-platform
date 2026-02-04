@@ -14,7 +14,7 @@ export default function Testimonials() {
       <div className="max-w-3xl mx-auto space-y-8 relative">
         {testimonials.map((testimonial, index) => (
           <Card key={index}>
-            <p className="text-slate-700 text-lg italic mb-4">"{testimonial.quote}"</p>
+            <p className="text-slate-700 text-lg italic mb-4">&ldquo;{testimonial.quote}&rdquo;</p>
             <footer className="text-vscode-blue font-semibold">— {testimonial.author}</footer>
           </Card>
         ))}

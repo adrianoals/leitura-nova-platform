@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { FaLinkedinIn, FaInstagram, FaFacebookF, FaPhone, FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
 import { SocialLink } from '@/types';
 
@@ -27,9 +28,11 @@ export default function Footer() {
           {/* Brand column */}
           <div>
             <Link href="/" className="inline-block focus:outline-none focus:ring-2 focus:ring-vscode-blue rounded">
-              <img
+              <Image
                 src="/images/logoleituranova-hero.jpg"
                 alt="Leitura Nova"
+                width={160}
+                height={48}
                 className="h-12 w-auto brightness-0 invert opacity-95 hover:opacity-100 transition-opacity"
               />
             </Link>

@@ -1,14 +1,18 @@
+import Image from 'next/image';
+
 export default function About() {
   return (
     <section id="sobre" className="bg-white py-20 sm:py-32">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto grid max-w-2xl grid-cols-1 items-center gap-x-8 gap-y-16 sm:gap-y-24 lg:mx-0 lg:max-w-none lg:grid-cols-2">
           <div className="lg:pr-4">
-            <div className="relative overflow-hidden rounded-3xl bg-gray-900 shadow-2xl">
-              <img
-                className="h-full w-full object-cover"
+            <div className="relative overflow-hidden rounded-3xl bg-gray-900 shadow-2xl aspect-[4/3]">
+              <Image
+                className="object-cover"
                 src="/images/about2.png"
                 alt="Imagem sobre a LeituraNova"
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
               />
             </div>
           </div>
