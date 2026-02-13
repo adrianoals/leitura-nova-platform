@@ -18,6 +18,41 @@ Execute os scripts **na ordem** no **SQL Editor** do Supabase Dashboard:
 | 3 | `03_storage.sql` | Bucket de fotos + policies |
 | 4 | `04_seed.sql` | Dados de teste (⚠️ só dev) |
 
+## Modelo de Dados
+
+```
+condominios (1) ──→ (N) unidades (1) ──→ (N) moradores
+      │                    │
+      └──→ (N) sindicos    └──→ (N) leituras_mensais (1) ──→ (N) fotos_leitura
+
+auth.users ──→ moradores.auth_user_id
+           ──→ sindicos.auth_user_id
+           ──→ admin_users.auth_user_id
+```
+
+## Roles (3 níveis)
+
+| Role | Tabela | Acesso |
+|------|--------|--------|
+| **Admin** | `admin_users` | CRUD total em tudo |
+| **Síndico** | `sindicos` | Leitura total do(s) seu(s) condomínio(s) |
+| **Morador** | `moradores` | Leitura da própria unidade (12 meses) |
+
+### Fluxo de login:
+```
+auth.uid() existe em admin_users?  → /admin
+auth.uid() existe em sindicos?     → /sindico (futuro)
+auth.uid() existe em moradores?    → /app
+Nenhum?                            → Acesso negado
+```
+
+## Configurar Admin
+
+1. No Supabase Dashboard: **Authentication > Users > Add User**
+2. Crie o usuário admin com email/senha
+3. Copie o UUID gerado
+4. No `04_seed.sql`, descomente o INSERT e substitua pelo UUID
+
 ## Ambientes
 
 | Ambiente | Supabase Project | Quando usar |
@@ -26,25 +61,3 @@ Execute os scripts **na ordem** no **SQL Editor** do Supabase Dashboard:
 | **Prod** | Projeto separado | Produção (dados reais) |
 
 > ⚠️ **Nunca execute `04_seed.sql` em produção!**
-
-## Configurar Admin
-
-1. No Supabase Dashboard: **Authentication > Users > Add User**
-2. Crie o usuário admin com email/senha
-3. Copie o UUID gerado
-4. No `04_seed.sql`, descomente o INSERT e substitua `'SEU_AUTH_USER_ID_ADMIN'` pelo UUID
-
-## Modelo de Dados
-
-```
-condominios (1) ──→ (N) unidades (1) ──→ (N) moradores
-                         │
-                         └──→ (N) leituras_mensais (1) ──→ (N) fotos_leitura
-```
-
-## Segurança (RLS)
-
-- **Morador**: SELECT apenas da própria unidade (últimos 12 meses)
-- **Morador**: INSERT leitura/foto somente se `envio_leitura_morador_habilitado = true`
-- **Admin**: CRUD total em todas as tabelas
-- **Storage**: Fotos organizadas por `{condominio_id}/{unidade_id}/{mes}/{tipo}/`

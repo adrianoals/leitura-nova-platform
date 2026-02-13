@@ -70,7 +70,26 @@ CREATE TABLE IF NOT EXISTS admin_users (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-COMMENT ON TABLE admin_users IS 'Usuários com permissão de administrador';
+COMMENT ON TABLE admin_users IS 'Usuários com permissão de administrador (acesso total)';
+
+-- ===================
+-- SÍNDICOS
+-- ===================
+CREATE TABLE IF NOT EXISTS sindicos (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    auth_user_id    UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    condominio_id   UUID NOT NULL REFERENCES condominios(id) ON DELETE CASCADE,
+    nome            TEXT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    -- Um síndico pode gerenciar vários condos, mas não duplicar
+    UNIQUE(auth_user_id, condominio_id)
+);
+
+COMMENT ON TABLE sindicos IS 'Síndicos vinculados a condomínios. Veem tudo do seu condomínio';
+
+CREATE INDEX idx_sindicos_auth ON sindicos(auth_user_id);
+CREATE INDEX idx_sindicos_condominio ON sindicos(condominio_id);
 
 -- ===================
 -- LEITURAS MENSAIS

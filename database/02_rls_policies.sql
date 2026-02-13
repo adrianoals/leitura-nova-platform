@@ -2,8 +2,7 @@
 -- 02_rls_policies.sql — Políticas de Row Level Security
 -- ============================================================
 -- Executar APÓS 01_tables.sql.
--- Garante que moradores só acessam dados da própria unidade
--- e admins têm acesso total.
+-- 3 roles: admin (tudo), síndico (seu condomínio), morador (sua unidade)
 -- ============================================================
 
 -- ===================
@@ -12,13 +11,16 @@
 ALTER TABLE condominios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE unidades ENABLE ROW LEVEL SECURITY;
 ALTER TABLE moradores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sindicos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE leituras_mensais ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fotos_leitura ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 
 -- ===================
--- Função auxiliar: verificar se é admin
+-- Funções auxiliares
 -- ===================
+
+-- Verificar se é admin
 CREATE OR REPLACE FUNCTION is_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -29,9 +31,29 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- ===================
--- Função auxiliar: obter unidade_id do morador logado
--- ===================
+-- Verificar se é síndico de um condomínio específico
+CREATE OR REPLACE FUNCTION is_sindico_of(condo_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM sindicos
+        WHERE auth_user_id = auth.uid()
+        AND condominio_id = condo_id
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Obter IDs dos condos do síndico logado
+CREATE OR REPLACE FUNCTION get_my_condominio_ids()
+RETURNS SETOF UUID AS $$
+BEGIN
+    RETURN QUERY
+        SELECT condominio_id FROM sindicos
+        WHERE auth_user_id = auth.uid();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Obter unidade_id do morador logado
 CREATE OR REPLACE FUNCTION get_my_unidade_id()
 RETURNS UUID AS $$
 BEGIN
@@ -51,7 +73,11 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE POLICY admin_condominios_all ON condominios
     FOR ALL USING (is_admin());
 
--- Morador: apenas leitura do seu condomínio
+-- Síndico: leitura dos seus condos
+CREATE POLICY sindico_condominios_select ON condominios
+    FOR SELECT USING (id IN (SELECT get_my_condominio_ids()));
+
+-- Morador: leitura do seu condomínio
 CREATE POLICY morador_condominios_select ON condominios
     FOR SELECT USING (
         id IN (
@@ -69,11 +95,13 @@ CREATE POLICY morador_condominios_select ON condominios
 CREATE POLICY admin_unidades_all ON unidades
     FOR ALL USING (is_admin());
 
--- Morador: apenas leitura da própria unidade
+-- Síndico: leitura das unidades dos seus condos
+CREATE POLICY sindico_unidades_select ON unidades
+    FOR SELECT USING (condominio_id IN (SELECT get_my_condominio_ids()));
+
+-- Morador: leitura da própria unidade
 CREATE POLICY morador_unidades_select ON unidades
-    FOR SELECT USING (
-        id = get_my_unidade_id()
-    );
+    FOR SELECT USING (id = get_my_unidade_id());
 
 -- =====================================================
 -- MORADORES
@@ -83,11 +111,30 @@ CREATE POLICY morador_unidades_select ON unidades
 CREATE POLICY admin_moradores_all ON moradores
     FOR ALL USING (is_admin());
 
--- Morador: leitura apenas do próprio registro
-CREATE POLICY morador_moradores_select ON moradores
+-- Síndico: leitura dos moradores dos seus condos
+CREATE POLICY sindico_moradores_select ON moradores
     FOR SELECT USING (
-        auth_user_id = auth.uid()
+        unidade_id IN (
+            SELECT id FROM unidades
+            WHERE condominio_id IN (SELECT get_my_condominio_ids())
+        )
     );
+
+-- Morador: leitura do próprio registro
+CREATE POLICY morador_moradores_select ON moradores
+    FOR SELECT USING (auth_user_id = auth.uid());
+
+-- =====================================================
+-- SÍNDICOS
+-- =====================================================
+
+-- Admin: CRUD total
+CREATE POLICY admin_sindicos_all ON sindicos
+    FOR ALL USING (is_admin());
+
+-- Síndico: leitura do próprio registro
+CREATE POLICY sindico_sindicos_select ON sindicos
+    FOR SELECT USING (auth_user_id = auth.uid());
 
 -- =====================================================
 -- LEITURAS MENSAIS
@@ -96,6 +143,15 @@ CREATE POLICY morador_moradores_select ON moradores
 -- Admin: CRUD total
 CREATE POLICY admin_leituras_all ON leituras_mensais
     FOR ALL USING (is_admin());
+
+-- Síndico: leitura de todas as leituras dos seus condos
+CREATE POLICY sindico_leituras_select ON leituras_mensais
+    FOR SELECT USING (
+        unidade_id IN (
+            SELECT id FROM unidades
+            WHERE condominio_id IN (SELECT get_my_condominio_ids())
+        )
+    );
 
 -- Morador: leitura dos últimos 12 meses da própria unidade
 CREATE POLICY morador_leituras_select ON leituras_mensais
@@ -124,7 +180,17 @@ CREATE POLICY morador_leituras_insert ON leituras_mensais
 CREATE POLICY admin_fotos_all ON fotos_leitura
     FOR ALL USING (is_admin());
 
--- Morador: leitura apenas das fotos da própria unidade
+-- Síndico: leitura das fotos dos seus condos
+CREATE POLICY sindico_fotos_select ON fotos_leitura
+    FOR SELECT USING (
+        leitura_id IN (
+            SELECT lm.id FROM leituras_mensais lm
+            JOIN unidades u ON u.id = lm.unidade_id
+            WHERE u.condominio_id IN (SELECT get_my_condominio_ids())
+        )
+    );
+
+-- Morador: leitura das fotos da própria unidade
 CREATE POLICY morador_fotos_select ON fotos_leitura
     FOR SELECT USING (
         leitura_id IN (
@@ -152,5 +218,3 @@ CREATE POLICY morador_fotos_insert ON fotos_leitura
 -- Admin: pode ver todos os admins
 CREATE POLICY admin_users_select ON admin_users
     FOR SELECT USING (is_admin());
-
--- Nenhuma policy para moradores (não precisam ver admin_users)
