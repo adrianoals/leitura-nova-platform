@@ -6,7 +6,20 @@ import { FaArrowLeft, FaCamera, FaTachometerAlt, FaTint, FaFire, FaCloudUploadAl
 import { mockMorador } from '@/mocks/moradorData';
 
 export default function EnviarLeituraPage() {
-    const { condominio } = mockMorador.unidade;
+    const unidade = mockMorador.unidade;
+    const condominio = unidade?.condominio;
+
+    if (!unidade || !condominio) {
+        return (
+            <div className="max-w-lg mx-auto">
+                <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
+                    <p className="text-slate-500">Dados da unidade indisponíveis.</p>
+                    <Link href="/app" className="text-vscode-blue mt-2 inline-block">Voltar</Link>
+                </div>
+            </div>
+        );
+    }
+
     const [tipo, setTipo] = useState<'agua' | 'gas'>(condominio.temAgua ? 'agua' : 'gas');
     const [medicao, setMedicao] = useState('');
     const [fotos, setFotos] = useState<string[]>([]);

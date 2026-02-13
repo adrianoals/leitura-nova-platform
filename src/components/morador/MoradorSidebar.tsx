@@ -36,19 +36,30 @@ export default function MoradorSidebar() {
                     .eq('auth_user_id', user.id)
                     .single();
 
-                if (morador?.unidade?.condominio) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const rawCondominio: any = morador.unidade.condominio;
+                const rawUnidade = Array.isArray(morador?.unidade) ? morador.unidade[0] : morador?.unidade;
+                const rawCondominio = Array.isArray(rawUnidade?.condominio) ? rawUnidade.condominio[0] : rawUnidade?.condominio;
+
+                if (rawCondominio) {
+                    const condominioObj = rawCondominio as {
+                        id: string;
+                        nome: string;
+                        tem_agua: boolean;
+                        tem_agua_quente: boolean;
+                        tem_gas: boolean;
+                        envio_leitura_morador_habilitado: boolean;
+                        leitura_dia_inicio: number;
+                        leitura_dia_fim: number;
+                    };
 
                     const condominioMapped: Condominio = {
-                        id: rawCondominio.id,
-                        nome: rawCondominio.nome,
-                        temAgua: rawCondominio.tem_agua,
-                        temAguaQuente: rawCondominio.tem_agua_quente,
-                        temGas: rawCondominio.tem_gas,
-                        envioLeituraMoradorHabilitado: rawCondominio.envio_leitura_morador_habilitado,
-                        leituraDiaInicio: rawCondominio.leitura_dia_inicio,
-                        leituraDiaFim: rawCondominio.leitura_dia_fim,
+                        id: condominioObj.id,
+                        nome: condominioObj.nome,
+                        temAgua: condominioObj.tem_agua,
+                        temAguaQuente: condominioObj.tem_agua_quente,
+                        temGas: condominioObj.tem_gas,
+                        envioLeituraMoradorHabilitado: condominioObj.envio_leitura_morador_habilitado,
+                        leituraDiaInicio: condominioObj.leitura_dia_inicio,
+                        leituraDiaFim: condominioObj.leitura_dia_fim,
                     };
 
                     setShowEnviarLeitura(isLeituraOpen(condominioMapped));

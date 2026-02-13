@@ -14,7 +14,18 @@ import {
 export default function LeituraMesPage({ params }: { params: Promise<{ mes: string }> }) {
     const { mes } = use(params);
     const leituras = getLeiturasMes(mes);
-    const { unidade } = mockMorador;
+    const unidade = mockMorador.unidade;
+
+    if (!unidade) {
+        return (
+            <div className="max-w-3xl mx-auto space-y-6">
+                <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
+                    <p className="text-slate-500">Dados da unidade indisponíveis.</p>
+                    <Link href="/app" className="text-vscode-blue mt-2 inline-block">Voltar</Link>
+                </div>
+            </div>
+        );
+    }
 
     if (leituras.length === 0) {
         return (
