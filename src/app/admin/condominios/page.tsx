@@ -1,17 +1,39 @@
-'use client';
-
 import Link from 'next/link';
 import { FaPlus, FaBuilding, FaSearch, FaTint, FaFire, FaCamera } from 'react-icons/fa';
-import { mockCondominios } from '@/mocks/adminData';
+import { createClient } from '@/lib/supabase/server';
 
-export default function CondominiosPage() {
+export default async function CondominiosPage() {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        const { redirect } = await import('next/navigation');
+        redirect('/login/admin');
+    }
+
+    const { data: condominios } = await supabase
+        .from('condominios')
+        .select(`
+            id,
+            nome,
+            tem_agua,
+            tem_gas,
+            envio_leitura_morador_habilitado,
+            unidades (count),
+            moradores (count)
+        `)
+        .order('nome', { ascending: true });
+
     return (
         <div className="max-w-5xl mx-auto space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">Condomínios</h1>
-                    <p className="text-slate-500 text-sm">{mockCondominios.length} condomínios cadastrados</p>
+                    <p className="text-slate-500 text-sm">
+                        {condominios?.length || 0} condomínios cadastrados
+                    </p>
                 </div>
                 <Link
                     href="/admin/condominios/novo"
@@ -22,7 +44,7 @@ export default function CondominiosPage() {
                 </Link>
             </div>
 
-            {/* Search */}
+            {/* Search (Client component would be better for interactive search, keeping simple for now) */}
             <div className="relative">
                 <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
@@ -34,7 +56,7 @@ export default function CondominiosPage() {
 
             {/* List */}
             <div className="space-y-3">
-                {mockCondominios.map(cond => (
+                {(condominios || []).map(cond => (
                     <Link
                         key={cond.id}
                         href={`/admin/condominios/${cond.id}`}
@@ -47,22 +69,27 @@ export default function CondominiosPage() {
                                 </div>
                                 <div>
                                     <p className="font-semibold text-slate-900">{cond.nome}</p>
-                                    <p className="text-xs text-slate-500">{cond.totalUnidades} unidades • {cond.totalMoradores} moradores</p>
+                                    <p className="text-xs text-slate-500">
+                                        {/* @ts-ignore */}
+                                        {cond.unidades?.[0]?.count || 0} unidades •
+                                        {/* @ts-ignore */}
+                                        {cond.moradores?.[0]?.count || 0} moradores
+                                    </p>
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-3">
-                                {cond.temAgua && (
+                                {cond.tem_agua && (
                                     <span className="flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">
                                         <FaTint className="h-3 w-3" /> Água
                                     </span>
                                 )}
-                                {cond.temGas && (
+                                {cond.tem_gas && (
                                     <span className="flex items-center gap-1 rounded-full bg-orange-100 px-2.5 py-1 text-xs font-medium text-orange-700">
                                         <FaFire className="h-3 w-3" /> Gás
                                     </span>
                                 )}
-                                {cond.envioLeituraMoradorHabilitado && (
+                                {cond.envio_leitura_morador_habilitado && (
                                     <span className="hidden sm:flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
                                         <FaCamera className="h-3 w-3" /> Envio
                                     </span>
@@ -71,6 +98,12 @@ export default function CondominiosPage() {
                         </div>
                     </Link>
                 ))}
+
+                {(!condominios || condominios.length === 0) && (
+                    <div className="text-center py-10 text-slate-500">
+                        Nenhum condomínio encontrado.
+                    </div>
+                )}
             </div>
         </div>
     );

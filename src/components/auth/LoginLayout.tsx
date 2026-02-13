@@ -6,21 +6,24 @@ import Link from 'next/link';
 
 interface LoginLayoutProps {
     children: ReactNode;
-    variant?: 'user' | 'admin';
+    variant?: 'user' | 'admin' | 'sindico';
 }
 
 export default function LoginLayout({ children, variant = 'user' }: LoginLayoutProps) {
     const isAdmin = variant === 'admin';
+    const isSindico = variant === 'sindico';
+
+    let gradientClass = 'bg-gradient-to-br from-vscode-blue-dark via-vscode-blue to-vscode-blue-light';
+    if (isAdmin) {
+        gradientClass = 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700'; // Admin: Dark/Slate
+    } else if (isSindico) {
+        gradientClass = 'bg-gradient-to-br from-indigo-900 via-indigo-800 to-violet-900'; // Sindico: Indigo/Purple (Distinct)
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
             {/* Background gradient */}
-            <div
-                className={`absolute inset-0 ${isAdmin
-                        ? 'bg-gradient-to-br from-slate-900 via-vscode-blue-dark to-slate-800'
-                        : 'bg-gradient-to-br from-vscode-blue-dark via-vscode-blue to-vscode-blue-light'
-                    }`}
-            />
+            <div className={`absolute inset-0 ${gradientClass}`} />
 
             {/* Grid pattern overlay */}
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />

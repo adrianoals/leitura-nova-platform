@@ -1,30 +1,70 @@
-import { FaTint, FaFire, FaCalendarAlt, FaTachometerAlt } from 'react-icons/fa';
-import { LeituraMensal, formatarData, formatarValor } from '@/mocks/moradorData';
+import { FaTint, FaFire, FaCalendarAlt, FaTachometerAlt, FaThermometerHalf } from 'react-icons/fa';
+import { LeituraMensal } from '@/types';
 
-interface DashboardCardProps {
-    tipo: 'agua' | 'gas';
-    leitura?: LeituraMensal;
+// Helper de formatação simples (agora que removemos a dependência direta do mock)
+function formatarData(data: string) {
+    if (!data) return '-';
+    const [ano, mes, dia] = data.split('-');
+    return `${dia}/${mes}/${ano}`;
 }
 
-export default function DashboardCard({ tipo, leitura }: DashboardCardProps) {
-    const isAgua = tipo === 'agua';
-    const Icon = isAgua ? FaTint : FaFire;
-    const label = isAgua ? 'Água' : 'Gás';
-    const gradientClass = isAgua
-        ? 'from-blue-500 to-cyan-500'
-        : 'from-orange-500 to-amber-500';
-    const iconBgClass = isAgua
-        ? 'bg-blue-100 text-blue-600'
-        : 'bg-orange-100 text-orange-600';
+function formatarValor(valor: number) {
+    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+interface DashboardCardProps {
+    tipo: 'agua' | 'gas' | 'agua_fria' | 'agua_quente';
+    leitura?: LeituraMensal;
+    label?: string; // Opcional: overwrite do label automático
+    icon?: React.ElementType; // Opcional: overwrite do ícone
+}
+
+export default function DashboardCard({ tipo, leitura, label, icon }: DashboardCardProps) {
+    // Definições padrão baseadas no tipo
+    let defaultLabel = '';
+    let DefaultIcon = FaTint;
+    let gradientClass = '';
+    let iconBgClass = '';
+
+    switch (tipo) {
+        case 'agua':
+            defaultLabel = 'Água';
+            DefaultIcon = FaTint;
+            gradientClass = 'from-blue-500 to-cyan-500';
+            iconBgClass = 'bg-blue-100 text-blue-600';
+            break;
+        case 'agua_fria':
+            defaultLabel = 'Água Fria';
+            DefaultIcon = FaTint;
+            gradientClass = 'from-blue-500 to-cyan-500'; // Azul
+            iconBgClass = 'bg-blue-100 text-blue-600';
+            break;
+        case 'agua_quente':
+            defaultLabel = 'Água Quente';
+            DefaultIcon = FaThermometerHalf; // Ícone diferente para água quente
+            gradientClass = 'from-red-500 to-orange-500'; // Vermelho/Laranja
+            iconBgClass = 'bg-red-100 text-red-600';
+            break;
+        case 'gas':
+            defaultLabel = 'Gás';
+            DefaultIcon = FaFire;
+            gradientClass = 'from-orange-500 to-amber-500';
+            iconBgClass = 'bg-orange-100 text-orange-600';
+            break;
+    }
+
+    // Se props foram passadas, use-as, senão use o default
+    const DisplayLabel = label || defaultLabel;
+    const DisplayIcon = icon || DefaultIcon;
 
     if (!leitura) {
         return (
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                     <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBgClass}`}>
-                        <Icon className="h-5 w-5" />
+                        <DisplayIcon className="h-5 w-5" />
                     </div>
-                    <h3 className="text-lg font-semibold text-slate-900">{label}</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">{DisplayLabel}</h3>
                 </div>
                 <p className="text-sm text-slate-500 italic">
                     Leitura do mês ainda não está atualizada.
@@ -39,9 +79,9 @@ export default function DashboardCard({ tipo, leitura }: DashboardCardProps) {
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                     <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBgClass}`}>
-                        <Icon className="h-5 w-5" />
+                        <DisplayIcon className="h-5 w-5" />
                     </div>
-                    <h3 className="text-lg font-semibold text-slate-900">{label}</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">{DisplayLabel}</h3>
                 </div>
                 <span className={`rounded-full bg-gradient-to-r ${gradientClass} px-3 py-1 text-xs font-semibold text-white`}>
                     Mês Atual

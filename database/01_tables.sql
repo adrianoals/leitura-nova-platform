@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS condominios (
     id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     nome        TEXT NOT NULL,
     tem_agua    BOOLEAN NOT NULL DEFAULT TRUE,
+    tem_agua_quente BOOLEAN NOT NULL DEFAULT FALSE,
     tem_gas     BOOLEAN NOT NULL DEFAULT FALSE,
     envio_leitura_morador_habilitado BOOLEAN NOT NULL DEFAULT FALSE,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -22,6 +23,7 @@ CREATE TABLE IF NOT EXISTS condominios (
 );
 
 COMMENT ON TABLE condominios IS 'Condomínios cadastrados no sistema';
+COMMENT ON COLUMN condominios.tem_agua_quente IS 'Quando true, unidades possuem 2 hidrômetros: água fria + água quente';
 COMMENT ON COLUMN condominios.envio_leitura_morador_habilitado IS 'Quando true, o morador pode enviar foto do medidor + medição';
 
 -- ===================
@@ -97,7 +99,7 @@ CREATE INDEX idx_sindicos_condominio ON sindicos(condominio_id);
 CREATE TABLE IF NOT EXISTS leituras_mensais (
     id                          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     unidade_id                  UUID NOT NULL REFERENCES unidades(id) ON DELETE CASCADE,
-    tipo                        TEXT NOT NULL CHECK (tipo IN ('agua', 'gas')),
+    tipo                        TEXT NOT NULL CHECK (tipo IN ('agua', 'agua_fria', 'agua_quente', 'gas')),
     mes_referencia              TEXT NOT NULL, -- formato: 'YYYY-MM'
     data_leitura                DATE NOT NULL,
     medicao                     NUMERIC(10, 2) NOT NULL,
@@ -111,7 +113,8 @@ CREATE TABLE IF NOT EXISTS leituras_mensais (
     UNIQUE(unidade_id, tipo, mes_referencia)
 );
 
-COMMENT ON TABLE leituras_mensais IS 'Leituras de água/gás por unidade e mês';
+COMMENT ON TABLE leituras_mensais IS 'Leituras de água (fria/quente) e gás por unidade e mês';
+COMMENT ON COLUMN leituras_mensais.tipo IS 'agua = medidor único | agua_fria/agua_quente = 2 medidores | gas';
 COMMENT ON COLUMN leituras_mensais.mes_referencia IS 'Formato YYYY-MM (ex: 2026-02)';
 COMMENT ON COLUMN leituras_mensais.criado_por_morador IS 'True se a leitura foi enviada pelo morador';
 

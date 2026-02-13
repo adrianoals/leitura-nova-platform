@@ -4,7 +4,7 @@ interface StatsCardProps {
     title: string;
     value: string | number;
     icon: ReactNode;
-    color: 'blue' | 'green' | 'yellow' | 'red' | 'purple';
+    color: 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'orange';
     subtitle?: string;
 }
 
@@ -14,6 +14,7 @@ const colorMap = {
     yellow: 'bg-yellow-100 text-yellow-600',
     red: 'bg-red-100 text-red-600',
     purple: 'bg-purple-100 text-purple-600',
+    orange: 'bg-orange-100 text-orange-600',
 };
 
 export default function StatsCard({ title, value, icon, color, subtitle }: StatsCardProps) {

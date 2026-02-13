@@ -1,31 +1,10 @@
-export interface Condominio {
-    id: string;
-    nome: string;
-    temAgua: boolean;
-    temGas: boolean;
-    envioLeituraMoradorHabilitado: boolean;
-}
+import { LeituraMensal, MoradorData, Condominio, Unidade } from '@/types';
 
-export interface Unidade {
-    id: string;
-    condominio: Condominio;
-    bloco: string;
-    apartamento: string;
-}
+// Re-export for compatibility
+export type { LeituraMensal, MoradorData, Condominio, Unidade };
 
-export interface LeituraMensal {
-    id: string;
-    tipo: 'agua' | 'gas';
-    mesReferencia: string; // formato: '2026-01'
-    dataLeitura: string;   // formato: '2026-01-15'
-    medicao: number;
-    valor: number;
-    fotos: string[];
-}
-
-export interface MoradorData {
-    nome: string;
-    unidade: Unidade;
+// Interface estendida apenas para o Mock (já que o frontend atual espera leituras aninhadas)
+interface MockMoradorData extends MoradorData {
     leituras: LeituraMensal[];
 }
 
@@ -55,19 +34,26 @@ const leituras: LeituraMensal[] = [
     { id: '21', tipo: 'agua', mesReferencia: '2025-04', dataLeitura: '2025-04-11', medicao: 19, valor: 99.80, fotos: [] },
     { id: '22', tipo: 'gas', mesReferencia: '2025-04', dataLeitura: '2025-04-11', medicao: 6, valor: 42.00, fotos: [] },
     { id: '23', tipo: 'agua', mesReferencia: '2025-03', dataLeitura: '2025-03-12', medicao: 14, valor: 74.20, fotos: [] },
-    { id: '24', tipo: 'gas', mesReferencia: '2025-03', dataLeitura: '2025-03-12', medicao: 8, valor: 55.00, fotos: [] },
+    { id: '24', tipo: 'gas', mesReferencia: '2025-03', dataLeitura: '2025-03-12', medicao: 8, valor: 55.00, fotos: [] }
 ];
 
-export const mockMorador: MoradorData = {
+export const mockMorador: MockMoradorData = {
+    id: 'm1',
+    authUserId: 'mock-auth-id',
     nome: 'João Silva',
+    unidadeId: 'u1',
     unidade: {
         id: 'u1',
+        condominioId: 'c1',
         condominio: {
             id: 'c1',
             nome: 'Residencial Jardim das Flores',
             temAgua: true,
             temGas: true,
+            temAguaQuente: false,
             envioLeituraMoradorHabilitado: true,
+            leituraDiaInicio: 1,
+            leituraDiaFim: 30, // Aberto o mês todo para testes
         },
         bloco: 'Torre A',
         apartamento: 'Apto 101',
@@ -98,12 +84,14 @@ export function getMesesUnicos() {
 }
 
 export function formatarMes(mesRef: string) {
+    if (!mesRef) return '-';
     const [ano, mes] = mesRef.split('-');
     const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     return `${meses[parseInt(mes) - 1]}/${ano}`;
 }
 
 export function formatarData(data: string) {
+    if (!data) return '-';
     const [ano, mes, dia] = data.split('-');
     return `${dia}/${mes}/${ano}`;
 }

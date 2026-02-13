@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import {
     FaChartPie,
     FaBuilding,
@@ -27,11 +28,19 @@ const navItems = [
 
 export default function AdminSidebar() {
     const pathname = usePathname();
+    const router = useRouter();
+    const supabase = createClient();
     const [mobileOpen, setMobileOpen] = useState(false);
 
     const isActive = (href: string) => {
         if (href === '/admin') return pathname === '/admin';
         return pathname.startsWith(href);
+    };
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        router.push('/login');
+        router.refresh();
     };
 
     const sidebarContent = (
@@ -58,8 +67,8 @@ export default function AdminSidebar() {
                             href={item.href}
                             onClick={() => setMobileOpen(false)}
                             className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${active
-                                    ? 'bg-yellow-500 text-slate-900 shadow-lg shadow-yellow-500/25'
-                                    : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                                ? 'bg-yellow-500 text-slate-900 shadow-lg shadow-yellow-500/25'
+                                : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
                                 }`}
                         >
                             <Icon className="h-5 w-5 shrink-0" />
@@ -72,7 +81,7 @@ export default function AdminSidebar() {
             {/* Logout */}
             <div className="px-3 pb-4">
                 <button
-                    onClick={() => alert('Logout simulado')}
+                    onClick={handleLogout}
                     className="flex w-full items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200"
                 >
                     <FaSignOutAlt className="h-5 w-5" />

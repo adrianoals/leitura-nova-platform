@@ -30,6 +30,23 @@ auth.users ──→ moradores.auth_user_id
            ──→ admin_users.auth_user_id
 ```
 
+## Tipos de Medição
+
+| Tipo | Quando usar |
+|------|-------------|
+| `agua` | Condomínio com **1 hidrômetro** por unidade |
+| `agua_fria` | Condomínio com **2 hidrômetros** (fria + quente) |
+| `agua_quente` | Condomínio com **2 hidrômetros** (fria + quente) |
+| `gas` | Medição de gás |
+
+### Configuração no condomínio:
+
+| Campo | Valor | Resultado |
+|-------|-------|-----------|
+| `tem_agua = true, tem_agua_quente = false` | 1 hidrômetro | Tipo: `agua` |
+| `tem_agua = true, tem_agua_quente = true` | 2 hidrômetros | Tipos: `agua_fria` + `agua_quente` |
+| `tem_gas = true` | Medidor de gás | Tipo: `gas` |
+
 ## Roles (3 níveis)
 
 | Role | Tabela | Acesso |

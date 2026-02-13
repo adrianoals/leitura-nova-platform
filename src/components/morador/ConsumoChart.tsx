@@ -12,7 +12,8 @@ import {
     Line,
     ComposedChart,
 } from 'recharts';
-import { LeituraMensal, formatarMes, formatarValor } from '@/mocks/moradorData';
+import { LeituraMensal } from '@/types';
+import { formatarMes, formatarValor } from '@/mocks/moradorData';
 
 interface ConsumoChartProps {
     leiturasAgua: LeituraMensal[];
