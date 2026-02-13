@@ -7,8 +7,6 @@ export interface Condominio {
   temAguaQuente: boolean;
   temGas: boolean;
   envioLeituraMoradorHabilitado: boolean;
-  leituraDiaInicio: number;
-  leituraDiaFim: number;
 }
 
 export interface Unidade {

@@ -43,8 +43,9 @@ CREATE POLICY morador_storage_select ON storage.objects
     FOR SELECT USING (
         bucket_id = 'leitura-fotos'
         AND (storage.foldername(name))[2] = (
-            SELECT id::text FROM moradores
-            WHERE auth_user_id = auth.uid()
+            SELECT u.id::text FROM moradores m
+            JOIN unidades u ON u.id = m.unidade_id
+            WHERE m.auth_user_id = auth.uid()
             LIMIT 1
         )
     );

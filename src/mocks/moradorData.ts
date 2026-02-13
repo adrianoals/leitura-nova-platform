@@ -52,8 +52,6 @@ export const mockMorador: MockMoradorData = {
             temGas: true,
             temAguaQuente: false,
             envioLeituraMoradorHabilitado: true,
-            leituraDiaInicio: 1,
-            leituraDiaFim: 30, // Aberto o mês todo para testes
         },
         bloco: 'Torre A',
         apartamento: 'Apto 101',

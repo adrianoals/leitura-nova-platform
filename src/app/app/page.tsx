@@ -71,8 +71,6 @@ export default async function AppDashboard() {
         temAguaQuente: condominio.tem_agua_quente,
         temGas: condominio.tem_gas,
         envioLeituraMoradorHabilitado: condominio.envio_leitura_morador_habilitado,
-        leituraDiaInicio: condominio.leitura_dia_inicio,
-        leituraDiaFim: condominio.leitura_dia_fim,
     };
 
     const podeEnviarLeitura = isLeituraOpen(condominioMapped);

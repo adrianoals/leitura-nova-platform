@@ -47,8 +47,6 @@ export default function MoradorSidebar() {
                         tem_agua_quente: boolean;
                         tem_gas: boolean;
                         envio_leitura_morador_habilitado: boolean;
-                        leitura_dia_inicio: number;
-                        leitura_dia_fim: number;
                     };
 
                     const condominioMapped: Condominio = {
@@ -58,8 +56,6 @@ export default function MoradorSidebar() {
                         temAguaQuente: condominioObj.tem_agua_quente,
                         temGas: condominioObj.tem_gas,
                         envioLeituraMoradorHabilitado: condominioObj.envio_leitura_morador_habilitado,
-                        leituraDiaInicio: condominioObj.leitura_dia_inicio,
-                        leituraDiaFim: condominioObj.leitura_dia_fim,
                     };
 
                     setShowEnviarLeitura(isLeituraOpen(condominioMapped));

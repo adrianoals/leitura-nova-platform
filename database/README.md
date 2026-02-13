@@ -17,13 +17,14 @@ Execute os scripts **na ordem** no **SQL Editor** do Supabase Dashboard:
 | 2 | `02_rls_policies.sql` | Row Level Security (segurança) |
 | 3 | `03_storage.sql` | Bucket de fotos + policies |
 | 4 | `04_seed.sql` | Dados de teste (⚠️ só dev) |
-| 5 | `05_reading_window.sql` | Janela de dias para envio de leitura |
+| 5 | `05_reading_window.sql` | **Descontinuada** (mantida como no-op) |
 | 6 | `06_unique_access_per_unit.sql` | Regra de 1 acesso por unidade |
+| 7 | `07_fix_storage_policy_unit_owner.sql` | Corrige leitura de fotos por unidade |
 
 ## Modelo de Dados
 
 ```
-condominios (1) ──→ (N) unidades (1) ──→ (N) moradores
+condominios (1) ──→ (N) unidades (1) ──→ (1) moradores
       │                    │
       └──→ (N) sindicos    └──→ (N) leituras_mensais (1) ──→ (N) fotos_leitura
 

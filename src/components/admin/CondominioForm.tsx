@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaSpinner, FaSave, FaWater, FaFire, FaCalendarAlt } from 'react-icons/fa';
+import { FaSpinner, FaSave, FaWater, FaFire } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/client';
 
 const condominoSchema = z.object({
@@ -14,8 +14,6 @@ const condominoSchema = z.object({
     tem_agua_quente: z.boolean(), // Maps to '2 hidrômetros' logic
     tem_gas: z.boolean(),
     envio_leitura_morador_habilitado: z.boolean(),
-    leitura_dia_inicio: z.number().min(1).max(31),
-    leitura_dia_fim: z.number().min(1).max(31),
 });
 
 type CondominioFormData = z.infer<typeof condominoSchema>;
@@ -39,8 +37,6 @@ export default function CondominioForm() {
             tem_agua_quente: false, // Default 1 meter (Cold only)
             tem_gas: false,
             envio_leitura_morador_habilitado: false,
-            leitura_dia_inicio: 1,
-            leitura_dia_fim: 10,
         },
     });
 
@@ -159,9 +155,7 @@ export default function CondominioForm() {
 
             {/* Configuração de Leitura */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                <h3 className="text-lg font-semibold text-slate-800 mb-4 border-b border-slate-100 pb-2 flex items-center gap-2">
-                    <FaCalendarAlt className="text-purple-500" /> Regras de Leitura
-                </h3>
+                <h3 className="text-lg font-semibold text-slate-800 mb-4 border-b border-slate-100 pb-2">Regras de Leitura</h3>
 
                 <div className="space-y-6">
                     <div className="flex items-center gap-3">
@@ -175,34 +169,6 @@ export default function CondominioForm() {
                             Permitir que moradores enviem a própria leitura (foto)?
                         </label>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Dia Início da Leitura</label>
-                            <input
-                                type="number"
-                                min="1"
-                                max="31"
-                                {...register('leitura_dia_inicio', { valueAsNumber: true })}
-                                className="w-full rounded-lg border-slate-300 focus:border-purple-500 focus:ring-purple-500"
-                            />
-                            {errors.leitura_dia_inicio && <p className="text-red-500 text-sm mt-1">{errors.leitura_dia_inicio.message}</p>}
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Dia Fim da Leitura</label>
-                            <input
-                                type="number"
-                                min="1"
-                                max="31"
-                                {...register('leitura_dia_fim', { valueAsNumber: true })}
-                                className="w-full rounded-lg border-slate-300 focus:border-purple-500 focus:ring-purple-500"
-                            />
-                            {errors.leitura_dia_fim && <p className="text-red-500 text-sm mt-1">{errors.leitura_dia_fim.message}</p>}
-                        </div>
-                    </div>
-                    <p className="text-xs text-slate-500">
-                        O envio pelo morador (se habilitado) só estará disponível entre esses dias de cada mês.
-                    </p>
                 </div>
             </div>
 
