@@ -38,8 +38,23 @@ async function ensureAdmin() {
     return supabase;
 }
 
+function isUuid(value: string) {
+    return z.string().uuid().safeParse(value).success;
+}
+
+function buildNovaUnidadeRedirect(errorMessage: string, condominioId?: string) {
+    const query = new URLSearchParams({ error: errorMessage });
+
+    if (condominioId && isUuid(condominioId)) {
+        query.set('condominio_id', condominioId);
+    }
+
+    return `/admin/unidades/nova?${query.toString()}`;
+}
+
 export async function createUnidade(formData: FormData) {
     const supabase = await ensureAdmin();
+    const returnCondominioId = String(formData.get('return_condominio_id') || '').trim();
 
     const parsed = createUnidadeSchema.safeParse({
         condominio_id: formData.get('condominio_id'),
@@ -48,7 +63,7 @@ export async function createUnidade(formData: FormData) {
     });
 
     if (!parsed.success) {
-        redirect('/admin/unidades/nova?error=Dados%20inv%C3%A1lidos');
+        redirect(buildNovaUnidadeRedirect('Dados inválidos', returnCondominioId));
     }
 
     const payload = {
@@ -64,14 +79,21 @@ export async function createUnidade(formData: FormData) {
     if (error) {
         const isDuplicate = error.message.toLowerCase().includes('duplicate');
         const message = isDuplicate
-            ? 'Unidade%20j%C3%A1%20cadastrada%20neste%20condom%C3%ADnio'
-            : 'N%C3%A3o%20foi%20poss%C3%ADvel%20salvar%20a%20unidade';
-        redirect(`/admin/unidades/nova?error=${message}`);
+            ? 'Unidade já cadastrada neste condomínio'
+            : 'Não foi possível salvar a unidade';
+        redirect(buildNovaUnidadeRedirect(message, returnCondominioId));
     }
 
     revalidatePath('/admin/unidades');
     revalidatePath('/admin/condominios');
-    redirect('/admin/unidades?created=1');
+
+    if (isUuid(parsed.data.condominio_id)) {
+        revalidatePath(`/admin/condominios/${parsed.data.condominio_id}`);
+    }
+
+    const listQuery = new URLSearchParams({ created: '1' });
+    listQuery.set('condominio_id', parsed.data.condominio_id);
+    redirect(`/admin/unidades?${listQuery.toString()}`);
 }
 
 export async function updateUnidade(formData: FormData) {

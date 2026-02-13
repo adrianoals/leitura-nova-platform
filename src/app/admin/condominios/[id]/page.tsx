@@ -77,7 +77,7 @@ export default async function CondominioDetailPage({ params }: { params: Params 
                     <Link href="/admin/leituras/nova" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all">
                         <FaPlus className="h-3 w-3" /> Leitura
                     </Link>
-                    <Link href="/admin/unidades/nova" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all">
+                    <Link href={`/admin/unidades/nova?condominio_id=${cond.id}`} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all">
                         <FaDoorOpen className="h-3 w-3" /> Unidade
                     </Link>
                     <DeleteCondominioButton condominioId={cond.id} />
@@ -102,7 +102,7 @@ export default async function CondominioDetailPage({ params }: { params: Params 
             <div>
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold text-slate-900">Unidades</h2>
-                    <Link href="/admin/unidades/nova" className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-vscode-blue hover:bg-vscode-blue/5 font-medium transition-colors">
+                    <Link href={`/admin/unidades/nova?condominio_id=${cond.id}`} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-vscode-blue hover:bg-vscode-blue/5 font-medium transition-colors">
                         <FaPlus className="h-4 w-4" /> Adicionar Unidade
                     </Link>
                 </div>
