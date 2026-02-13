@@ -2,7 +2,13 @@ import Link from 'next/link';
 import { FaPlus, FaBuilding, FaSearch, FaTint, FaFire, FaCamera } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 
-export default async function CondominiosPage() {
+type SearchParams = Promise<{
+    deleted?: string;
+    error?: string;
+}>;
+
+export default async function CondominiosPage({ searchParams }: { searchParams: SearchParams }) {
+    const query = await searchParams;
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -26,6 +32,17 @@ export default async function CondominiosPage() {
 
     return (
         <div className="max-w-5xl mx-auto space-y-6">
+            {query.deleted === '1' && (
+                <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                    Condomínio excluído com sucesso. As unidades e os acessos vinculados foram removidos em cascata.
+                </div>
+            )}
+            {query.error && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {decodeURIComponent(query.error)}
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>

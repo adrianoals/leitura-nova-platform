@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { FaArrowLeft, FaDoorOpen, FaTint, FaFire, FaCamera, FaPlus, FaKey } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
+import DeleteCondominioButton from '@/components/admin/DeleteCondominioButton';
 
 type Params = Promise<{ id: string }>;
 
@@ -79,6 +80,7 @@ export default async function CondominioDetailPage({ params }: { params: Params 
                     <Link href="/admin/unidades/nova" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all">
                         <FaDoorOpen className="h-3 w-3" /> Unidade
                     </Link>
+                    <DeleteCondominioButton condominioId={cond.id} />
                 </div>
             </div>
 

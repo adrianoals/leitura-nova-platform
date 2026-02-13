@@ -74,7 +74,7 @@ export default function CondominioForm() {
                     <input
                         type="text"
                         {...register('nome')}
-                        className="w-full rounded-lg border-slate-300 focus:border-vscode-blue focus:ring-vscode-blue"
+                        className="w-full rounded-xl border-2 border-slate-300 bg-white px-4 py-3 text-base font-medium text-slate-900 placeholder:text-slate-500 shadow-sm focus:border-vscode-blue focus:outline-none focus:ring-4 focus:ring-vscode-blue/15"
                         placeholder="Ex: Residencial Flores do Campo"
                     />
                     {errors.nome && <p className="text-red-500 text-sm mt-1">{errors.nome.message}</p>}
@@ -102,33 +102,16 @@ export default function CondominioForm() {
 
                         {temAgua && (
                             <div className="ml-8 p-4 bg-blue-50 rounded-xl border border-blue-100">
-                                <label className="block text-sm font-medium text-blue-900 mb-2">Tipo de Medição de Água</label>
-                                <div className="flex gap-4">
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            value="false"
-                                            {...register('tem_agua_quente')}
-                                            // Convert string value back to boolean for react-hook-form if needed, but radio usually returns string.
-                                            // Actually with boolean in schema, radio inputs are tricky. Let's use standard handling or check logic.
-                                            // Standard trick: value="false" -> hook form constraints?
-                                            // Simplification: Manual onChange or use select.
-                                            // Let's use a simple Select for clarity.
-                                            className="hidden" // Hiding and using custom logic or Just use Select?
-                                        />
-                                        {/* Let's redo this part as a Select to be safer with types */}
-                                    </label>
-
-                                    <select
-                                        {...register('tem_agua_quente', {
-                                            setValueAs: (v) => v === 'true',
-                                        })}
-                                        className="block w-full rounded-lg border-blue-200 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:ring-blue-500"
-                                    >
-                                        <option value="false">1 Hidrômetro (Apenas Água Fria)</option>
-                                        <option value="true">2 Hidrômetros (Fria + Quente)</option>
-                                    </select>
-                                </div>
+                                <label className="block text-sm font-semibold text-blue-900 mb-2">Tipo de Medição de Água</label>
+                                <select
+                                    {...register('tem_agua_quente', {
+                                        setValueAs: (v) => v === 'true',
+                                    })}
+                                    className="block w-full rounded-xl border-2 border-blue-300 bg-white px-4 py-3 text-base font-medium text-slate-900 shadow-sm focus:border-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-200"
+                                >
+                                    <option value="false">1 Hidrômetro (Apenas Água Fria)</option>
+                                    <option value="true">2 Hidrômetros (Fria + Quente)</option>
+                                </select>
                                 <p className="text-xs text-blue-600 mt-2">
                                     Selecione "2 Hidrômetros" se houver medição individual para Água Quente (aquecimento central).
                                 </p>

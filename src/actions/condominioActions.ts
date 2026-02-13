@@ -13,14 +13,29 @@ const CondominioSchema = z.object({
     envio_leitura_morador_habilitado: z.boolean(),
 });
 
-export async function createCondominio(prevState: any, formData: FormData) {
+async function ensureAdmin() {
     const supabase = await createClient();
-
-    // Check auth
     const { data: { user } } = await supabase.auth.getUser();
+
     if (!user) {
-        return { message: 'Usuário não autenticado' };
+        redirect('/login/admin');
     }
+
+    const { data: adminUser } = await supabase
+        .from('admin_users')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .single();
+
+    if (!adminUser) {
+        redirect('/app');
+    }
+
+    return supabase;
+}
+
+export async function createCondominio(prevState: any, formData: FormData) {
+    const supabase = await ensureAdmin();
 
     // Parse data
     const rawData = {
@@ -53,4 +68,32 @@ export async function createCondominio(prevState: any, formData: FormData) {
 
     revalidatePath('/admin/condominios');
     redirect('/admin/condominios');
+}
+
+function encodeMessage(message: string) {
+    return encodeURIComponent(message);
+}
+
+export async function deleteCondominio(condominioId: string) {
+    const supabase = await ensureAdmin();
+
+    if (!condominioId) {
+        redirect('/admin/condominios?error=' + encodeMessage('Condomínio inválido para exclusão'));
+    }
+
+    const { error } = await supabase
+        .from('condominios')
+        .delete()
+        .eq('id', condominioId);
+
+    if (error) {
+        redirect('/admin/condominios?error=' + encodeMessage('Não foi possível excluir o condomínio'));
+    }
+
+    revalidatePath('/admin');
+    revalidatePath('/admin/condominios');
+    revalidatePath('/admin/unidades');
+    revalidatePath('/admin/moradores');
+    revalidatePath('/admin/leituras');
+    redirect('/admin/condominios?deleted=1');
 }
