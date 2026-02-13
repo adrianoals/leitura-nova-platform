@@ -1,4 +1,4 @@
-import Button from '../ui/Button';
+import Button from '@/components/shared/ui/Button';
 
 // Número WhatsApp da empresa: 55 + DDD + 9 dígitos (somente números)
 const WHATSAPP_NUMBER = '5511933620044';

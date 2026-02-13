@@ -1,4 +1,4 @@
-import Card from '../ui/Card';
+import Card from '@/components/shared/ui/Card';
 import { Testimonial } from '@/types';
 
 const testimonials: Testimonial[] = [
