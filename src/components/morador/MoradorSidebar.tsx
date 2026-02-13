@@ -19,7 +19,6 @@ const senhaItem = { label: 'Trocar Senha', href: '/app/senha', icon: FaKey };
 export default function MoradorSidebar() {
     const pathname = usePathname();
     const router = useRouter();
-    const supabase = createClient();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [loading, setLoading] = useState(true);
     const [showEnviarLeitura, setShowEnviarLeitura] = useState(false);
@@ -27,6 +26,7 @@ export default function MoradorSidebar() {
     useEffect(() => {
         async function checkPermissions() {
             try {
+                const supabase = createClient();
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
 
@@ -87,6 +87,7 @@ export default function MoradorSidebar() {
     };
 
     const handleLogout = async () => {
+        const supabase = createClient();
         await supabase.auth.signOut();
         router.push('/login');
         router.refresh();

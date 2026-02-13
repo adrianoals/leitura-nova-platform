@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import { FaSignOutAlt, FaUserCircle, FaSpinner } from 'react-icons/fa';
 
 export default function MoradorHeader() {
-    const supabase = createClient();
     const router = useRouter();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -16,6 +15,7 @@ export default function MoradorHeader() {
     useEffect(() => {
         async function loadProfile() {
             try {
+                const supabase = createClient();
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
 
@@ -38,6 +38,7 @@ export default function MoradorHeader() {
     }, []); // Removed deps to avoid loops as creation is stable
 
     const handleLogout = async () => {
+        const supabase = createClient();
         await supabase.auth.signOut();
         router.push('/login');
         router.refresh();
