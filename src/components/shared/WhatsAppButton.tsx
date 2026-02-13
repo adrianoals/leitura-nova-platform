@@ -1,9 +1,17 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { FaWhatsapp } from 'react-icons/fa';
 
 export default function WhatsAppButton() {
-    const phoneNumber = '5511933620044'; // Formato: código do país + DDD + número
+    const pathname = usePathname();
+
+    // Não exibir nos painéis do morador e admin
+    if (pathname.startsWith('/app') || pathname.startsWith('/admin')) {
+        return null;
+    }
+
+    const phoneNumber = '5511933620044';
     const message = 'Olá! Gostaria de saber mais sobre os serviços da Leitura Nova.';
 
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
