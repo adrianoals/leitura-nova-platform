@@ -8,7 +8,7 @@ import {
     FaChartPie,
     FaBuilding,
     FaDoorOpen,
-    FaUsers,
+    FaKey,
     FaClipboardList,
     FaEye,
     FaSignOutAlt,
@@ -21,7 +21,7 @@ const navItems = [
     { label: 'Dashboard', href: '/admin', icon: FaChartPie },
     { label: 'Condomínios', href: '/admin/condominios', icon: FaBuilding },
     { label: 'Unidades', href: '/admin/unidades', icon: FaDoorOpen },
-    { label: 'Moradores', href: '/admin/moradores', icon: FaUsers },
+    { label: 'Acessos', href: '/admin/moradores', icon: FaKey },
     { label: 'Leituras', href: '/admin/leituras', icon: FaClipboardList },
     { label: 'Visualizar como', href: '/admin/visualizar', icon: FaEye },
 ];

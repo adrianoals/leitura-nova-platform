@@ -1,78 +1,169 @@
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
-import { FaUsers, FaSearch, FaPlus, FaDoorOpen } from 'react-icons/fa';
-import { mockMoradores, getUnidadeById } from '@/mocks/adminData';
+import { FaSearch, FaDoorOpen, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
+import { createClient } from '@/lib/supabase/server';
 
-export default function MoradoresPage() {
-    const [filtro, setFiltro] = useState('');
+type SearchParams = Promise<{
+    condominio?: string;
+    q?: string;
+}>;
 
-    const moradoresFiltrados = mockMoradores.filter(m =>
-        `${m.nome} ${m.identificadorLogin}`.toLowerCase().includes(filtro.toLowerCase())
-    );
+type UnidadeAccessRow = {
+    id: string;
+    bloco: string;
+    apartamento: string;
+    condominio_id: string;
+    condominio: { id: string; nome: string } | { id: string; nome: string }[] | null;
+    moradores: { id: string; nome: string | null }[] | null;
+};
+
+type CondominioOption = {
+    id: string;
+    nome: string;
+};
+
+function getCondominioNome(condominio: UnidadeAccessRow['condominio']) {
+    if (!condominio) return 'Condomínio';
+    if (Array.isArray(condominio)) return condominio[0]?.nome || 'Condomínio';
+    return condominio.nome;
+}
+
+export default async function MoradoresPage({ searchParams }: { searchParams: SearchParams }) {
+    const params = await searchParams;
+    const condominioId = params.condominio || '';
+    const termoBusca = (params.q || '').trim().toLowerCase();
+
+    const supabase = await createClient();
+
+    const { data: condominios } = await supabase
+        .from('condominios')
+        .select('id, nome')
+        .order('nome', { ascending: true });
+
+    let query = supabase
+        .from('unidades')
+        .select(`
+            id,
+            bloco,
+            apartamento,
+            condominio_id,
+            condominio:condominios (
+                id,
+                nome
+            ),
+            moradores (
+                id,
+                nome
+            )
+        `)
+        .order('apartamento', { ascending: true });
+
+    if (condominioId) {
+        query = query.eq('condominio_id', condominioId);
+    }
+
+    const { data: unidadesRaw } = await query;
+
+    const unidades = ((unidadesRaw || []) as UnidadeAccessRow[]).filter((u) => {
+        if (!termoBusca) return true;
+        const condNome = getCondominioNome(u.condominio);
+        const texto = `${u.bloco} ${u.apartamento} ${condNome} ${u.moradores?.[0]?.nome || ''}`.toLowerCase();
+        return texto.includes(termoBusca);
+    });
+
+    const totalUnidades = unidades.length;
+    const totalComAcesso = unidades.filter((u) => (u.moradores?.length || 0) > 0).length;
 
     return (
         <div className="max-w-5xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Moradores</h1>
-                    <p className="text-slate-500 text-sm">{mockMoradores.length} moradores cadastrados</p>
+                    <h1 className="text-2xl font-bold text-slate-900">Acessos por Unidade</h1>
+                    <p className="text-slate-500 text-sm">
+                        {totalComAcesso} de {totalUnidades} unidades com acesso configurado
+                    </p>
                 </div>
-                <Link href="/admin/moradores/novo"
-                    className="inline-flex items-center gap-2 rounded-xl bg-vscode-blue px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-vscode-blue/25 hover:bg-vscode-blue-dark transition-all hover:scale-[1.02]"
-                >
-                    <FaPlus className="h-4 w-4" /> Novo Morador
-                </Link>
             </div>
 
-            <div className="relative">
-                <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <input type="text" placeholder="Buscar morador..." value={filtro} onChange={e => setFiltro(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-vscode-blue/20 focus:border-vscode-blue transition-all"
-                />
-            </div>
+            <form className="grid grid-cols-1 md:grid-cols-3 gap-3" method="GET">
+                <select
+                    name="condominio"
+                    defaultValue={condominioId}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-vscode-blue/20 focus:border-vscode-blue transition-all"
+                >
+                    <option value="">Todos os condomínios</option>
+                    {(condominios as CondominioOption[] || []).map((cond) => (
+                        <option key={cond.id} value={cond.id}>{cond.nome}</option>
+                    ))}
+                </select>
+                <div className="relative md:col-span-2">
+                    <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <input
+                        type="text"
+                        name="q"
+                        defaultValue={params.q || ''}
+                        placeholder="Buscar unidade ou proprietário..."
+                        className="w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-vscode-blue/20 focus:border-vscode-blue transition-all"
+                    />
+                </div>
+            </form>
 
             <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <table className="w-full">
                     <thead>
                         <tr className="border-b border-slate-100 bg-slate-50">
-                            <th className="text-left text-xs font-semibold text-slate-500 uppercase px-6 py-3">Morador</th>
-                            <th className="text-left text-xs font-semibold text-slate-500 uppercase px-4 py-3 hidden sm:table-cell">Login</th>
-                            <th className="text-left text-xs font-semibold text-slate-500 uppercase px-4 py-3 hidden md:table-cell">Unidade</th>
+                            <th className="text-left text-xs font-semibold text-slate-500 uppercase px-6 py-3">Unidade</th>
+                            <th className="text-left text-xs font-semibold text-slate-500 uppercase px-4 py-3 hidden md:table-cell">Condomínio</th>
+                            <th className="text-left text-xs font-semibold text-slate-500 uppercase px-4 py-3">Proprietário</th>
+                            <th className="text-center text-xs font-semibold text-slate-500 uppercase px-4 py-3">Status</th>
                             <th className="text-right text-xs font-semibold text-slate-500 uppercase px-6 py-3">Ação</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {moradoresFiltrados.map(m => {
-                            const unidade = getUnidadeById(m.unidadeId);
+                        {unidades.map((u) => {
+                            const condNome = getCondominioNome(u.condominio);
+                            const proprietario = u.moradores?.[0];
+                            const hasAccess = Boolean(proprietario);
+
                             return (
-                                <tr key={m.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                                <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-purple-100 text-purple-600">
-                                                <FaUsers className="h-4 w-4" />
-                                            </div>
-                                            <p className="text-sm font-medium text-slate-900">{m.nome}</p>
+                                            <FaDoorOpen className="h-4 w-4 text-slate-400" />
+                                            <p className="text-sm font-medium text-slate-900">{u.bloco} — {u.apartamento}</p>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-4 text-sm text-slate-600 hidden sm:table-cell">{m.identificadorLogin}</td>
                                     <td className="px-4 py-4 text-sm text-slate-600 hidden md:table-cell">
-                                        {unidade ? (
-                                            <span className="flex items-center gap-1">
-                                                <FaDoorOpen className="h-3 w-3 text-slate-400" />
-                                                {unidade.bloco} — {unidade.apartamento}
+                                        {condNome}
+                                    </td>
+                                    <td className="px-4 py-4 text-sm text-slate-700">
+                                        {proprietario?.nome || <span className="italic text-slate-400">Não configurado</span>}
+                                    </td>
+                                    <td className="text-center px-4 py-4">
+                                        {hasAccess ? (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
+                                                <FaCheckCircle className="h-3 w-3" /> Ativo
                                             </span>
-                                        ) : '—'}
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                                                <FaExclamationCircle className="h-3 w-3" /> Pendente
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="text-right px-6 py-4">
-                                        <Link href={`/admin/moradores/${m.id}`} className="text-sm text-vscode-blue hover:text-vscode-blue-dark font-medium">
-                                            Editar
+                                        <Link href={`/admin/moradores/${u.id}`} className="text-sm text-vscode-blue hover:text-vscode-blue-dark font-medium">
+                                            Gerenciar
                                         </Link>
                                     </td>
                                 </tr>
                             );
                         })}
+                        {unidades.length === 0 && (
+                            <tr>
+                                <td colSpan={5} className="px-6 py-8 text-center text-sm text-slate-500">
+                                    Nenhuma unidade encontrada para o filtro selecionado.
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>

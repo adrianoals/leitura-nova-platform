@@ -1,16 +1,53 @@
-'use client';
-
-import { use, useState } from 'react';
 import Link from 'next/link';
-import { FaArrowLeft, FaBuilding, FaUserPlus, FaTrash, FaSave } from 'react-icons/fa';
-import { getUnidadeById } from '@/mocks/adminData';
+import { FaArrowLeft, FaBuilding, FaSave } from 'react-icons/fa';
+import { createClient } from '@/lib/supabase/server';
+import { updateUnidade } from '@/actions/unidadeActions';
 
-export default function UnidadeDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = use(params);
-    const unidade = getUnidadeById(id);
-    const [bloco, setBloco] = useState(unidade?.bloco ?? '');
-    const [apto, setApto] = useState(unidade?.apartamento ?? '');
-    const [saved, setSaved] = useState(false);
+type Params = Promise<{ id: string }>;
+type SearchParams = Promise<{ saved?: string; error?: string }>;
+
+type UnidadeDetail = {
+    id: string;
+    bloco: string;
+    apartamento: string;
+    condominio: { id: string; nome: string } | { id: string; nome: string }[] | null;
+    moradores: { id: string; nome: string | null }[] | null;
+};
+
+function getCondominioNome(condominio: UnidadeDetail['condominio']) {
+    if (!condominio) return 'Condomínio';
+    if (Array.isArray(condominio)) return condominio[0]?.nome || 'Condomínio';
+    return condominio.nome;
+}
+
+export default async function UnidadeDetailPage({
+    params,
+    searchParams,
+}: {
+    params: Params;
+    searchParams: SearchParams;
+}) {
+    const { id } = await params;
+    const query = await searchParams;
+    const supabase = await createClient();
+
+    const { data: unidade } = await supabase
+        .from('unidades')
+        .select(`
+            id,
+            bloco,
+            apartamento,
+            condominio:condominios (
+                id,
+                nome
+            ),
+            moradores (
+                id,
+                nome
+            )
+        `)
+        .eq('id', id)
+        .single<UnidadeDetail>();
 
     if (!unidade) {
         return (
@@ -23,11 +60,9 @@ export default function UnidadeDetailPage({ params }: { params: Promise<{ id: st
         );
     }
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-    };
+    const condominioNome = getCondominioNome(unidade.condominio);
+    const saved = query.saved === '1';
+    const error = query.error;
 
     return (
         <div className="max-w-lg mx-auto space-y-6">
@@ -37,52 +72,58 @@ export default function UnidadeDetailPage({ params }: { params: Promise<{ id: st
                 </Link>
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">Editar Unidade</h1>
-                    <p className="text-sm text-slate-500 flex items-center gap-1"><FaBuilding className="h-3 w-3" /> {unidade.condominio.nome}</p>
+                    <p className="text-sm text-slate-500 flex items-center gap-1"><FaBuilding className="h-3 w-3" /> {condominioNome}</p>
                 </div>
             </div>
 
             {saved && (
                 <div className="flex items-center gap-2 rounded-xl bg-green-50 border border-green-200 p-3 text-sm text-green-800">
-                    ✅ Salvo com sucesso!
+                    Unidade atualizada com sucesso.
                 </div>
             )}
 
-            <form onSubmit={handleSave} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+            {error && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                    {decodeURIComponent(error)}
+                </div>
+            )}
+
+            <form action={updateUnidade} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+                <input type="hidden" name="id" value={unidade.id} />
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-slate-700">Bloco</label>
-                    <input type="text" value={bloco} onChange={e => setBloco(e.target.value)}
+                    <input type="text" name="bloco" defaultValue={unidade.bloco}
                         className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-vscode-blue/20 focus:border-vscode-blue transition-all"
                     />
                 </div>
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-slate-700">Apartamento</label>
-                    <input type="text" value={apto} onChange={e => setApto(e.target.value)}
+                    <input type="text" name="apartamento" defaultValue={unidade.apartamento}
                         className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-vscode-blue/20 focus:border-vscode-blue transition-all"
+                        required
                     />
                 </div>
 
-                {/* Moradores */}
+                {/* Acesso vinculado à unidade */}
                 <div className="space-y-3 pt-2">
-                    <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-slate-700">Moradores</p>
-                        <button type="button" className="text-xs text-vscode-blue flex items-center gap-1 hover:text-vscode-blue-dark">
-                            <FaUserPlus className="h-3 w-3" /> Vincular
-                        </button>
-                    </div>
-                    {unidade.moradores.length === 0 && (
-                        <p className="text-sm text-slate-400 italic">Nenhum morador vinculado</p>
-                    )}
-                    {unidade.moradores.map(m => (
-                        <div key={m.id} className="flex items-center justify-between rounded-xl border border-slate-200 p-3">
-                            <div>
-                                <p className="text-sm font-medium text-slate-900">{m.nome}</p>
-                                <p className="text-xs text-slate-500">{m.identificadorLogin}</p>
-                            </div>
-                            <button type="button" className="text-slate-400 hover:text-red-500 transition-colors">
-                                <FaTrash className="h-4 w-4" />
-                            </button>
+                    <p className="text-sm font-medium text-slate-700">Acesso</p>
+                    {unidade.moradores && unidade.moradores.length > 0 ? (
+                        <div className="rounded-xl border border-slate-200 p-3 bg-slate-50">
+                            <p className="text-sm text-slate-800">
+                                {unidade.moradores[0].nome || 'Proprietário sem nome'}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                                Esta unidade já possui acesso cadastrado.
+                            </p>
                         </div>
-                    ))}
+                    ) : (
+                        <div className="rounded-xl border border-amber-200 p-3 bg-amber-50">
+                            <p className="text-sm text-amber-800">Unidade sem acesso cadastrado.</p>
+                            <Link href={`/admin/moradores/${unidade.id}`} className="text-xs text-amber-700 underline">
+                                Criar acesso para esta unidade
+                            </Link>
+                        </div>
+                    )}
                 </div>
 
                 <button type="submit"

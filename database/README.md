@@ -17,6 +17,8 @@ Execute os scripts **na ordem** no **SQL Editor** do Supabase Dashboard:
 | 2 | `02_rls_policies.sql` | Row Level Security (segurança) |
 | 3 | `03_storage.sql` | Bucket de fotos + policies |
 | 4 | `04_seed.sql` | Dados de teste (⚠️ só dev) |
+| 5 | `05_reading_window.sql` | Janela de dias para envio de leitura |
+| 6 | `06_unique_access_per_unit.sql` | Regra de 1 acesso por unidade |
 
 ## Modelo de Dados
 

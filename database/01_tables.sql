@@ -49,7 +49,7 @@ CREATE INDEX idx_unidades_condominio ON unidades(condominio_id);
 -- ===================
 CREATE TABLE IF NOT EXISTS moradores (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    unidade_id      UUID NOT NULL REFERENCES unidades(id) ON DELETE CASCADE,
+    unidade_id      UUID NOT NULL UNIQUE REFERENCES unidades(id) ON DELETE CASCADE,
     auth_user_id    UUID UNIQUE REFERENCES auth.users(id) ON DELETE SET NULL,
     nome            TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),

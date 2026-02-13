@@ -25,8 +25,11 @@ export const mockCondominios: AdminCondominio[] = [
         id: 'c1',
         nome: 'Residencial Jardim das Flores',
         temAgua: true,
+        temAguaQuente: false,
         temGas: true,
         envioLeituraMoradorHabilitado: true,
+        leituraDiaInicio: 1,
+        leituraDiaFim: 30,
         totalUnidades: 48,
         totalMoradores: 42,
     },
@@ -34,8 +37,11 @@ export const mockCondominios: AdminCondominio[] = [
         id: 'c2',
         nome: 'Edifício Monte Azul',
         temAgua: true,
+        temAguaQuente: false,
         temGas: false,
         envioLeituraMoradorHabilitado: false,
+        leituraDiaInicio: 1,
+        leituraDiaFim: 30,
         totalUnidades: 24,
         totalMoradores: 20,
     },
@@ -43,8 +49,11 @@ export const mockCondominios: AdminCondominio[] = [
         id: 'c3',
         nome: 'Condomínio Vila Verde',
         temAgua: true,
+        temAguaQuente: true,
         temGas: true,
         envioLeituraMoradorHabilitado: true,
+        leituraDiaInicio: 1,
+        leituraDiaFim: 30,
         totalUnidades: 96,
         totalMoradores: 81,
     },
@@ -52,8 +61,11 @@ export const mockCondominios: AdminCondominio[] = [
         id: 'c4',
         nome: 'Residencial Parque das Águas',
         temAgua: true,
+        temAguaQuente: false,
         temGas: false,
         envioLeituraMoradorHabilitado: false,
+        leituraDiaInicio: 1,
+        leituraDiaFim: 30,
         totalUnidades: 32,
         totalMoradores: 28,
     },
@@ -61,27 +73,27 @@ export const mockCondominios: AdminCondominio[] = [
 
 export const mockUnidades: AdminUnidade[] = [
     {
-        id: 'u1', condominio: mockCondominios[0], bloco: 'Torre A', apartamento: 'Apto 101',
+        id: 'u1', condominioId: 'c1', condominio: mockCondominios[0], bloco: 'Torre A', apartamento: 'Apto 101',
         moradores: [{ id: 'm1', nome: 'João Silva', identificadorLogin: 'joao@email.com', unidadeId: 'u1' }],
     },
     {
-        id: 'u2', condominio: mockCondominios[0], bloco: 'Torre A', apartamento: 'Apto 102',
+        id: 'u2', condominioId: 'c1', condominio: mockCondominios[0], bloco: 'Torre A', apartamento: 'Apto 102',
         moradores: [{ id: 'm2', nome: 'Maria Santos', identificadorLogin: 'maria@email.com', unidadeId: 'u2' }],
     },
     {
-        id: 'u3', condominio: mockCondominios[0], bloco: 'Torre A', apartamento: 'Apto 201',
+        id: 'u3', condominioId: 'c1', condominio: mockCondominios[0], bloco: 'Torre A', apartamento: 'Apto 201',
         moradores: [],
     },
     {
-        id: 'u4', condominio: mockCondominios[0], bloco: 'Torre B', apartamento: 'Apto 101',
+        id: 'u4', condominioId: 'c1', condominio: mockCondominios[0], bloco: 'Torre B', apartamento: 'Apto 101',
         moradores: [{ id: 'm3', nome: 'Carlos Oliveira', identificadorLogin: 'carlos@email.com', unidadeId: 'u4' }],
     },
     {
-        id: 'u5', condominio: mockCondominios[1], bloco: 'Bloco Único', apartamento: 'Apto 301',
+        id: 'u5', condominioId: 'c2', condominio: mockCondominios[1], bloco: 'Bloco Único', apartamento: 'Apto 301',
         moradores: [{ id: 'm4', nome: 'Ana Pereira', identificadorLogin: 'ana@email.com', unidadeId: 'u5' }],
     },
     {
-        id: 'u6', condominio: mockCondominios[1], bloco: 'Bloco Único', apartamento: 'Apto 302',
+        id: 'u6', condominioId: 'c2', condominio: mockCondominios[1], bloco: 'Bloco Único', apartamento: 'Apto 302',
         moradores: [],
     },
 ];
@@ -107,7 +119,7 @@ export function getCondominioById(id: string) {
 }
 
 export function getUnidadesByCondominio(condominioId: string) {
-    return mockUnidades.filter(u => u.condominio.id === condominioId);
+    return mockUnidades.filter(u => u.condominio?.id === condominioId);
 }
 
 export function getUnidadeById(id: string) {

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { FaBuilding, FaDoorOpen, FaUsers, FaExclamationTriangle, FaPlus, FaClipboardList, FaArrowRight } from 'react-icons/fa';
+import { FaBuilding, FaDoorOpen, FaPlus, FaClipboardList, FaArrowRight, FaKey } from 'react-icons/fa';
 import StatsCard from '@/components/admin/StatsCard';
 import { createClient } from '@/lib/supabase/server';
 
@@ -26,14 +26,7 @@ export default async function AdminDashboard() {
         .from('unidades')
         .select('*', { count: 'exact', head: true });
 
-    // 3. Total de Moradores
-    const { count: totalMoradores } = await supabase
-        .from('moradores')
-        .select('*', { count: 'exact', head: true });
-
-    // 4. Leituras Pendentes (Simulação simples por enquanto: unidades totais - leituras deste mês)
-    // Para ser exato, precisaria de uma query mais complexa. Vamos deixar um placeholder ou logica simplificada.
-    // Vamos contar quantas leituras foram feitas este mês.
+    // 3. Leituras concluídas no mês atual
     const date = new Date();
     const mesReferencia = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
@@ -42,14 +35,9 @@ export default async function AdminDashboard() {
         .select('*', { count: 'exact', head: true })
         .eq('mes_referencia', mesReferencia);
 
-    // Estimativa grosseira: Se cada unidade deveria ter pelo menos 1 leitura (agua ou gas),
-    // leituras pendentes = (totalUnidades * 1) - leiturasEsteMes.
-    // Isso é impreciso pois algumas têm 2 medidores, etc.
-    // Por enquanto, vamos mostrar "Leituras Realizadas no Mês" em vez de pendentes, ou manter 0.
     const leiturasRealizadas = leiturasEsteMes || 0;
 
-
-    // 5. Lista de Condomínios (Recentes ou todos)
+    // 4. Lista de condomínios recentes
     const { data: condominios } = await supabase
         .from('condominios')
         .select(`
@@ -57,8 +45,7 @@ export default async function AdminDashboard() {
             nome,
             tem_agua,
             tem_gas,
-            unidades (count),
-            sindicos (count)
+            unidades (count)
         `)
         .limit(5)
         .order('created_at', { ascending: false });
@@ -70,15 +57,13 @@ export default async function AdminDashboard() {
         temAgua: c.tem_agua,
         temGas: c.tem_gas,
         totalUnidades: c.unidades?.[0]?.count || 0, // Supabase retorna count assim quando pedido no select
-        // @ts-ignore: Supabase typing quirk with count
-        totalMoradores: 0 // Precisaria de um join mais complexo ou count separado. Deixar 0 ou remover coluna.
     }));
 
     const quickActions = [
         { label: 'Novo Condomínio', href: '/admin/condominios/novo', icon: FaPlus, color: 'text-blue-600 bg-blue-50 hover:bg-blue-100' },
         { label: 'Inserir Leitura', href: '/admin/leituras/nova', icon: FaClipboardList, color: 'text-green-600 bg-green-50 hover:bg-green-100' },
         { label: 'Ver Unidades', href: '/admin/unidades', icon: FaDoorOpen, color: 'text-purple-600 bg-purple-50 hover:bg-purple-100' },
-        { label: 'Ver Unidades', href: '/admin/unidades', icon: FaDoorOpen, color: 'text-purple-600 bg-purple-50 hover:bg-purple-100' },
+        { label: 'Acessos', href: '/admin/moradores', icon: FaKey, color: 'text-amber-700 bg-amber-50 hover:bg-amber-100' },
     ];
 
     return (
@@ -86,11 +71,11 @@ export default async function AdminDashboard() {
             {/* Header */}
             <div>
                 <h1 className="text-2xl font-bold text-slate-900">Dashboard Admin</h1>
-                <p className="text-slate-500 mt-1">Visão geral do sistema (Dados Reais)</p>
+                <p className="text-slate-500 mt-1">Visão geral operacional do sistema</p>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <StatsCard
                     title="Condomínios"
                     value={totalCondominios || 0}
@@ -104,7 +89,7 @@ export default async function AdminDashboard() {
                     color="green"
                 />
                 <StatsCard
-                    title="Leituras (Mês Atual)"
+                    title="Leituras Concluídas"
                     value={leiturasRealizadas}
                     icon={<FaClipboardList className="h-6 w-6" />}
                     color="orange"

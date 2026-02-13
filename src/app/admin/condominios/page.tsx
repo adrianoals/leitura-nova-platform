@@ -20,8 +20,7 @@ export default async function CondominiosPage() {
             tem_agua,
             tem_gas,
             envio_leitura_morador_habilitado,
-            unidades (count),
-            moradores (count)
+            unidades (count)
         `)
         .order('nome', { ascending: true });
 
@@ -71,9 +70,7 @@ export default async function CondominiosPage() {
                                     <p className="font-semibold text-slate-900">{cond.nome}</p>
                                     <p className="text-xs text-slate-500">
                                         {/* @ts-ignore */}
-                                        {cond.unidades?.[0]?.count || 0} unidades •
-                                        {/* @ts-ignore */}
-                                        {cond.moradores?.[0]?.count || 0} moradores
+                                        {cond.unidades?.[0]?.count || 0} unidades
                                     </p>
                                 </div>
                             </div>
