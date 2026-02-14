@@ -56,7 +56,7 @@ export default async function MoradorDetailPage({
             <div className="max-w-lg mx-auto">
                 <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
                     <p className="text-slate-500">Unidade não encontrada.</p>
-                    <Link href="/admin/moradores" className="text-vscode-blue mt-2 inline-block">Voltar para acessos</Link>
+                    <Link href="/admin/moradores" className="text-vscode-blue mt-2 inline-block">Voltar para moradores</Link>
                 </div>
             </div>
         );
@@ -78,10 +78,10 @@ export default async function MoradorDetailPage({
             if (!authError) {
                 email = authData.user?.email || '';
             } else {
-                adminClientError = 'Não foi possível carregar o email de login deste acesso.';
+                adminClientError = 'Não foi possível carregar o email de login deste morador.';
             }
         } catch {
-            adminClientError = 'SUPABASE_SERVICE_ROLE_KEY não configurada para gerenciar acessos.';
+            adminClientError = 'SUPABASE_SERVICE_ROLE_KEY não configurada para gerenciar moradores.';
         }
     }
 
@@ -92,20 +92,20 @@ export default async function MoradorDetailPage({
                     <FaArrowLeft className="h-4 w-4" />
                 </Link>
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Gerenciar Acesso</h1>
+                    <h1 className="text-2xl font-bold text-slate-900">Gerenciar Morador</h1>
                     <p className="text-sm text-slate-500">{condominioNome} — {unidade.bloco} — {unidade.apartamento}</p>
                 </div>
             </div>
 
             {saved && (
                 <div className="flex items-center gap-2 rounded-xl bg-green-50 border border-green-200 p-3 text-sm text-green-800">
-                    Acesso atualizado com sucesso.
+                    Morador atualizado com sucesso.
                 </div>
             )}
 
             {created && (
                 <div className="flex items-center gap-2 rounded-xl bg-green-50 border border-green-200 p-3 text-sm text-green-800">
-                    Acesso criado com sucesso.
+                    Morador criado com sucesso.
                 </div>
             )}
 
@@ -125,7 +125,7 @@ export default async function MoradorDetailPage({
                 <form action={createAcesso} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
                     <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 flex items-center gap-2">
                         <FaUserClock className="h-4 w-4" />
-                        Unidade sem acesso. Configure o proprietário para habilitar login.
+                        Unidade sem morador. Configure o proprietário para habilitar login.
                     </div>
 
                     <input type="hidden" name="unidade_id" value={unidade.id} />
@@ -157,14 +157,14 @@ export default async function MoradorDetailPage({
                     <button type="submit"
                         className="w-full rounded-xl bg-vscode-blue py-3 text-white font-semibold shadow-lg shadow-vscode-blue/25 hover:bg-vscode-blue-dark transition-all duration-200 flex items-center justify-center gap-2"
                     >
-                        <FaSave className="h-4 w-4" /> Criar Acesso
+                        <FaSave className="h-4 w-4" /> Criar Morador
                     </button>
                 </form>
             ) : (
                 <form action={updateAcesso} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
                     <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800 flex items-center gap-2">
                         <FaUserCheck className="h-4 w-4" />
-                        Acesso ativo para esta unidade.
+                        Morador ativo para esta unidade.
                     </div>
 
                     <input type="hidden" name="morador_id" value={acesso.id} />
@@ -195,7 +195,7 @@ export default async function MoradorDetailPage({
                     <button type="submit"
                         className="w-full rounded-xl bg-vscode-blue py-3 text-white font-semibold shadow-lg shadow-vscode-blue/25 hover:bg-vscode-blue-dark transition-all duration-200 flex items-center justify-center gap-2"
                     >
-                        <FaSave className="h-4 w-4" /> Salvar Acesso
+                        <FaSave className="h-4 w-4" /> Salvar Morador
                     </button>
                 </form>
             )}

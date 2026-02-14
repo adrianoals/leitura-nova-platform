@@ -63,7 +63,7 @@ export default async function AdminDashboard() {
         { label: 'Novo Condomínio', href: '/admin/condominios/novo', icon: FaPlus, color: 'text-blue-600 bg-blue-50 hover:bg-blue-100' },
         { label: 'Inserir Leitura', href: '/admin/leituras/nova', icon: FaClipboardList, color: 'text-green-600 bg-green-50 hover:bg-green-100' },
         { label: 'Ver Unidades', href: '/admin/unidades', icon: FaDoorOpen, color: 'text-purple-600 bg-purple-50 hover:bg-purple-100' },
-        { label: 'Acessos', href: '/admin/moradores', icon: FaKey, color: 'text-amber-700 bg-amber-50 hover:bg-amber-100' },
+        { label: 'Moradores', href: '/admin/moradores', icon: FaKey, color: 'text-amber-700 bg-amber-50 hover:bg-amber-100' },
     ];
 
     return (

@@ -21,7 +21,7 @@ const navItems = [
     { label: 'Dashboard', href: '/admin', icon: FaChartPie },
     { label: 'Condomínios', href: '/admin/condominios', icon: FaBuilding },
     { label: 'Unidades', href: '/admin/unidades', icon: FaDoorOpen },
-    { label: 'Acessos', href: '/admin/moradores', icon: FaKey },
+    { label: 'Moradores', href: '/admin/moradores', icon: FaKey },
     { label: 'Leituras', href: '/admin/leituras', icon: FaClipboardList },
     { label: 'Visualizar como', href: '/admin/visualizar', icon: FaEye },
 ];

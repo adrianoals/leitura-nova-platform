@@ -112,7 +112,7 @@ export default async function VisualizarComoPage({ searchParams }: { searchParam
                         <div className="text-sm text-yellow-700 space-y-1">
                             <p><strong>Condomínio:</strong> {condominioSelecionado?.nome}</p>
                             <p><strong>Unidade:</strong> {unidadeSelecionada.bloco} — {unidadeSelecionada.apartamento}</p>
-                            <p><strong>Proprietário:</strong> {unidadeSelecionada.moradores?.[0]?.nome || 'Sem acesso configurado'}</p>
+                            <p><strong>Proprietário:</strong> {unidadeSelecionada.moradores?.[0]?.nome || 'Sem morador configurado'}</p>
                         </div>
                     </div>
                 )}

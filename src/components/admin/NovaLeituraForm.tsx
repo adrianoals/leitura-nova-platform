@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { FaArrowLeft, FaCheck } from 'react-icons/fa';
 import { createLeitura } from '@/actions/leituraActions';
@@ -26,6 +26,8 @@ interface NovaLeituraFormProps {
     condominios: CondominioInput[];
     unidades: UnidadeInput[];
     error?: string;
+    initialCondominioId?: string;
+    initialUnidadeId?: string;
 }
 
 function getTiposDisponiveis(condominio?: CondominioInput): Array<{ value: TipoLeitura; label: string }> {
@@ -58,9 +60,29 @@ function getDataAtual() {
     return new Date().toISOString().slice(0, 10);
 }
 
-export default function NovaLeituraForm({ condominios, unidades, error }: NovaLeituraFormProps) {
-    const [condominioId, setCondominioId] = useState('');
-    const [tipo, setTipo] = useState<TipoLeitura | ''>('');
+export default function NovaLeituraForm({
+    condominios,
+    unidades,
+    error,
+    initialCondominioId,
+    initialUnidadeId,
+}: NovaLeituraFormProps) {
+    const condominioInicial = condominios.some((cond) => cond.id === initialCondominioId)
+        ? (initialCondominioId as string)
+        : '';
+
+    const unidadeInicial = unidades.some(
+        (u) => u.id === initialUnidadeId && u.condominio_id === condominioInicial
+    )
+        ? (initialUnidadeId as string)
+        : '';
+
+    const [condominioId, setCondominioId] = useState(condominioInicial);
+    const [unidadeId, setUnidadeId] = useState(unidadeInicial);
+    const [tipo, setTipo] = useState<TipoLeitura | ''>(() => {
+        const cond = condominios.find((c) => c.id === condominioInicial);
+        return getTiposDisponiveis(cond)[0]?.value || '';
+    });
 
     const condominioSelecionado = useMemo(
         () => condominios.find((cond) => cond.id === condominioId),
@@ -77,10 +99,28 @@ export default function NovaLeituraForm({ condominios, unidades, error }: NovaLe
         [condominioSelecionado]
     );
 
+    useEffect(() => {
+        if (!condominioId) {
+            setUnidadeId('');
+            setTipo('');
+            return;
+        }
+
+        if (!unidadesFiltradas.some((u) => u.id === unidadeId)) {
+            setUnidadeId('');
+        }
+
+        if (!tiposDisponiveis.some((t) => t.value === tipo)) {
+            setTipo(tiposDisponiveis[0]?.value || '');
+        }
+    }, [condominioId, unidadeId, unidadesFiltradas, tipo, tiposDisponiveis]);
+
+    const backHref = condominioId ? `/admin/leituras?condominio_id=${condominioId}` : '/admin/leituras';
+
     return (
         <div className="max-w-lg mx-auto space-y-6">
             <div className="flex items-center gap-4">
-                <Link href="/admin/leituras" className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
+                <Link href={backHref} className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
                     <FaArrowLeft className="h-4 w-4" />
                 </Link>
                 <div>
@@ -95,7 +135,15 @@ export default function NovaLeituraForm({ condominios, unidades, error }: NovaLe
                 </div>
             )}
 
+            {condominioId && (
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                    Condomínio selecionado. Escolha a unidade e informe a leitura.
+                </div>
+            )}
+
             <form action={createLeitura} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+                <input type="hidden" name="return_condominio_id" value={condominioId} />
+                <input type="hidden" name="return_unidade_id" value={unidadeId} />
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-slate-700">Condomínio</label>
                     <select
@@ -121,6 +169,8 @@ export default function NovaLeituraForm({ condominios, unidades, error }: NovaLe
                     <label className="block text-sm font-medium text-slate-700">Unidade</label>
                     <select
                         name="unidade_id"
+                        value={unidadeId}
+                        onChange={(e) => setUnidadeId(e.target.value)}
                         className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-vscode-blue/20 focus:border-vscode-blue transition-all bg-white"
                         disabled={!condominioId}
                         required

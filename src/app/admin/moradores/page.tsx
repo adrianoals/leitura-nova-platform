@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { FaSearch, FaDoorOpen, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
+import FilterApplyButton from '@/components/admin/FilterApplyButton';
 
 type SearchParams = Promise<{
     condominio_id?: string;
@@ -74,17 +75,17 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
     }
 
     const totalUnidades = unidades.length;
-    const totalComAcesso = unidades.filter((u) => (u.moradores?.length || 0) > 0).length;
+    const totalComMorador = unidades.filter((u) => (u.moradores?.length || 0) > 0).length;
 
     return (
         <div className="max-w-5xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Acessos por Unidade</h1>
+                    <h1 className="text-2xl font-bold text-slate-900">Moradores por Unidade</h1>
                     <p className="text-slate-500 text-sm">
                         {hasCondominioSelecionado
-                            ? `${totalComAcesso} de ${totalUnidades} unidades com acesso configurado em ${condominioSelecionado?.nome}`
-                            : 'Selecione um condomínio para visualizar os acessos'}
+                            ? `${totalComMorador} de ${totalUnidades} unidades com morador configurado em ${condominioSelecionado?.nome}`
+                            : 'Selecione um condomínio para visualizar os moradores'}
                     </p>
                 </div>
             </div>
@@ -121,16 +122,11 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
                         </div>
                     </div>
 
-                    <button
-                        type="submit"
-                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                    >
-                        Aplicar filtro
-                    </button>
+                    <FilterApplyButton />
 
                     <Link
                         href="/admin/moradores"
-                        className="rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-medium text-slate-500 hover:bg-slate-50 transition-colors"
+                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[0.98]"
                     >
                         Limpar
                     </Link>
@@ -139,7 +135,7 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
 
             {!hasCondominioSelecionado ? (
                 <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-600">
-                    Selecione um condomínio para visualizar os acessos.
+                    Selecione um condomínio para visualizar os moradores.
                 </div>
             ) : (
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">

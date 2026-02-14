@@ -31,7 +31,7 @@ export default function DeleteCondominioButton({ condominioId }: DeleteCondomini
             action={deleteAction}
             onSubmit={(event) => {
                 const confirmed = window.confirm(
-                    'Tem certeza? Esta ação excluirá o condomínio, as unidades e os acessos vinculados.'
+                    'Tem certeza? Esta ação excluirá o condomínio, as unidades e os moradores vinculados.'
                 );
 
                 if (!confirmed) {

@@ -104,23 +104,23 @@ export default async function UnidadeDetailPage({
                     />
                 </div>
 
-                {/* Acesso vinculado à unidade */}
+                {/* Morador vinculado à unidade */}
                 <div className="space-y-3 pt-2">
-                    <p className="text-sm font-medium text-slate-700">Acesso</p>
+                    <p className="text-sm font-medium text-slate-700">Morador</p>
                     {unidade.moradores && unidade.moradores.length > 0 ? (
                         <div className="rounded-xl border border-slate-200 p-3 bg-slate-50">
                             <p className="text-sm text-slate-800">
                                 {unidade.moradores[0].nome || 'Proprietário sem nome'}
                             </p>
                             <p className="text-xs text-slate-500">
-                                Esta unidade já possui acesso cadastrado.
+                                Esta unidade já possui morador cadastrado.
                             </p>
                         </div>
                     ) : (
                         <div className="rounded-xl border border-amber-200 p-3 bg-amber-50">
-                            <p className="text-sm text-amber-800">Unidade sem acesso cadastrado.</p>
+                            <p className="text-sm text-amber-800">Unidade sem morador cadastrado.</p>
                             <Link href={`/admin/moradores/${unidade.id}`} className="text-xs text-amber-700 underline">
-                                Criar acesso para esta unidade
+                                Criar morador para esta unidade
                             </Link>
                         </div>
                     )}

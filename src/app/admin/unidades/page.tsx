@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { FaDoorOpen, FaSearch, FaBuilding } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
+import FilterApplyButton from '@/components/admin/FilterApplyButton';
 
 type SearchParams = Promise<{
     condominio_id?: string;
@@ -133,16 +134,11 @@ export default async function UnidadesPage({ searchParams }: { searchParams: Sea
                         </div>
                     </div>
 
-                    <button
-                        type="submit"
-                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                    >
-                        Aplicar filtro
-                    </button>
+                    <FilterApplyButton />
 
                     <Link
                         href="/admin/unidades"
-                        className="rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-medium text-slate-500 hover:bg-slate-50 transition-colors"
+                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-center text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[0.98]"
                     >
                         Limpar
                     </Link>
@@ -190,7 +186,7 @@ export default async function UnidadesPage({ searchParams }: { searchParams: Sea
                                         </td>
                                         <td className="text-center px-4 py-4">
                                             <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${hasAccess ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                                                {hasAccess ? 'Com acesso' : 'Sem acesso'}
+                                                {hasAccess ? 'Com morador' : 'Sem morador'}
                                             </span>
                                         </td>
                                         <td className="text-right px-6 py-4">

@@ -1,7 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
 import NovaLeituraForm from '@/components/admin/NovaLeituraForm';
 
-type SearchParams = Promise<{ error?: string }>;
+type SearchParams = Promise<{
+    error?: string;
+    condominio_id?: string;
+    unidade_id?: string;
+}>;
 
 type CondominioInput = {
     id: string;
@@ -37,6 +41,8 @@ export default async function NovaLeituraPage({ searchParams }: { searchParams: 
             condominios={(condominios || []) as CondominioInput[]}
             unidades={(unidades || []) as UnidadeInput[]}
             error={params.error}
+            initialCondominioId={params.condominio_id}
+            initialUnidadeId={params.unidade_id}
         />
     );
 }

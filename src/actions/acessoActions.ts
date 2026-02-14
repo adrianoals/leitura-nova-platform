@@ -67,7 +67,7 @@ export async function createAcesso(formData: FormData) {
         .maybeSingle();
 
     if (acessoExistente) {
-        redirect(`/admin/moradores/${parsed.data.unidade_id}?error=${encodeMessage('Esta unidade já possui acesso')}`);
+        redirect(`/admin/moradores/${parsed.data.unidade_id}?error=${encodeMessage('Esta unidade já possui morador')}`);
     }
 
     let adminClient;
@@ -98,7 +98,7 @@ export async function createAcesso(formData: FormData) {
 
     if (insertError) {
         await adminClient.auth.admin.deleteUser(createdAuth.user.id);
-        redirect(`/admin/moradores/${parsed.data.unidade_id}?error=${encodeMessage('Não foi possível vincular o acesso à unidade')}`);
+        redirect(`/admin/moradores/${parsed.data.unidade_id}?error=${encodeMessage('Não foi possível vincular o morador à unidade')}`);
     }
 
     revalidatePath('/admin/moradores');
@@ -130,7 +130,7 @@ export async function updateAcesso(formData: FormData) {
         .single();
 
     if (!morador) {
-        redirect(`/admin/moradores/${unidadeId}?error=${encodeMessage('Acesso não encontrado')}`);
+        redirect(`/admin/moradores/${unidadeId}?error=${encodeMessage('Morador não encontrado')}`);
     }
 
     let adminClient;
@@ -192,7 +192,7 @@ export async function updateAcesso(formData: FormData) {
         .eq('id', morador.id);
 
     if (updateMoradorError) {
-        redirect(`/admin/moradores/${morador.unidade_id}?error=${encodeMessage('Não foi possível atualizar o acesso')}`);
+        redirect(`/admin/moradores/${morador.unidade_id}?error=${encodeMessage('Não foi possível atualizar o morador')}`);
     }
 
     revalidatePath('/admin/moradores');

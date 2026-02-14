@@ -37,12 +37,28 @@ async function ensureAdmin() {
     return { supabase, user };
 }
 
-function encodeMessage(message: string) {
-    return encodeURIComponent(message);
+function isUuid(value: string) {
+    return z.string().uuid().safeParse(value).success;
+}
+
+function buildNovaLeituraRedirect(errorMessage: string, condominioId?: string, unidadeId?: string) {
+    const query = new URLSearchParams({ error: errorMessage });
+
+    if (condominioId && isUuid(condominioId)) {
+        query.set('condominio_id', condominioId);
+    }
+
+    if (unidadeId && isUuid(unidadeId)) {
+        query.set('unidade_id', unidadeId);
+    }
+
+    return `/admin/leituras/nova?${query.toString()}`;
 }
 
 export async function createLeitura(formData: FormData) {
     const { supabase, user } = await ensureAdmin();
+    const returnCondominioId = String(formData.get('return_condominio_id') || '').trim();
+    const returnUnidadeId = String(formData.get('return_unidade_id') || '').trim();
 
     const parsed = leituraSchema.safeParse({
         unidade_id: formData.get('unidade_id'),
@@ -54,7 +70,7 @@ export async function createLeitura(formData: FormData) {
     });
 
     if (!parsed.success) {
-        redirect(`/admin/leituras/nova?error=${encodeMessage('Dados inválidos para leitura')}`);
+        redirect(buildNovaLeituraRedirect('Dados inválidos para leitura', returnCondominioId, returnUnidadeId));
     }
 
     const payload = {
@@ -75,8 +91,16 @@ export async function createLeitura(formData: FormData) {
         .single();
 
     if (leituraError || !leitura) {
-        redirect(`/admin/leituras/nova?error=${encodeMessage('Não foi possível salvar a leitura')}`);
+        redirect(buildNovaLeituraRedirect('Não foi possível salvar a leitura', returnCondominioId, returnUnidadeId));
     }
+
+    const { data: unidadeData } = await supabase
+        .from('unidades')
+        .select('condominio_id')
+        .eq('id', parsed.data.unidade_id)
+        .maybeSingle();
+
+    const condominioIdForReturn = unidadeData?.condominio_id || (isUuid(returnCondominioId) ? returnCondominioId : '');
 
     const arquivos = formData
         .getAll('fotos')
@@ -87,16 +111,10 @@ export async function createLeitura(formData: FormData) {
         try {
             adminClient = createAdminClient();
         } catch {
-            redirect(`/admin/leituras/nova?error=${encodeMessage('SUPABASE_SERVICE_ROLE_KEY não configurada para upload de fotos')}`);
+            redirect(buildNovaLeituraRedirect('SUPABASE_SERVICE_ROLE_KEY não configurada para upload de fotos', condominioIdForReturn, parsed.data.unidade_id));
         }
 
-        const { data: unidadeData } = await supabase
-            .from('unidades')
-            .select('condominio_id')
-            .eq('id', parsed.data.unidade_id)
-            .single();
-
-        const condominioId = unidadeData?.condominio_id || 'condominio';
+        const condominioId = condominioIdForReturn || 'condominio';
 
         for (const arquivo of arquivos) {
             const ext = arquivo.name.includes('.') ? arquivo.name.split('.').pop() : 'jpg';
@@ -115,7 +133,7 @@ export async function createLeitura(formData: FormData) {
                 });
 
             if (uploadError) {
-                redirect(`/admin/leituras/nova?error=${encodeMessage('Erro no upload de uma das fotos')}`);
+                redirect(buildNovaLeituraRedirect('Erro no upload de uma das fotos', condominioIdForReturn, parsed.data.unidade_id));
             }
 
             const { error: fotoError } = await supabase
@@ -126,12 +144,18 @@ export async function createLeitura(formData: FormData) {
                 });
 
             if (fotoError) {
-                redirect(`/admin/leituras/nova?error=${encodeMessage('Leitura salva, mas houve erro ao vincular foto')}`);
+                redirect(buildNovaLeituraRedirect('Leitura salva, mas houve erro ao vincular foto', condominioIdForReturn, parsed.data.unidade_id));
             }
         }
     }
 
     revalidatePath('/admin/leituras');
     revalidatePath('/admin');
-    redirect('/admin/leituras?created=1');
+
+    const listQuery = new URLSearchParams({ created: '1' });
+    if (isUuid(condominioIdForReturn)) {
+        listQuery.set('condominio_id', condominioIdForReturn);
+    }
+
+    redirect(`/admin/leituras?${listQuery.toString()}`);
 }

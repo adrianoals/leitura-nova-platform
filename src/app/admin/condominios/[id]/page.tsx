@@ -74,7 +74,7 @@ export default async function CondominioDetailPage({ params }: { params: Params 
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Link href="/admin/leituras/nova" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all">
+                    <Link href={`/admin/leituras?condominio_id=${cond.id}`} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all">
                         <FaPlus className="h-3 w-3" /> Leitura
                     </Link>
                     <Link href={`/admin/unidades/nova?condominio_id=${cond.id}`} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all">
@@ -91,11 +91,11 @@ export default async function CondominioDetailPage({ params }: { params: Params 
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
                     <p className="text-2xl font-bold text-slate-900">{unidades.filter((u) => (u.moradores?.length || 0) > 0).length}</p>
-                    <p className="text-xs text-slate-500">Acessos</p>
+                    <p className="text-xs text-slate-500">Moradores</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
                     <p className="text-2xl font-bold text-yellow-600">{unidades.filter((u) => (u.moradores?.length || 0) === 0).length}</p>
-                    <p className="text-xs text-slate-500">Sem Acesso</p>
+                    <p className="text-xs text-slate-500">Sem Morador</p>
                 </div>
             </div>
 
@@ -127,7 +127,7 @@ export default async function CondominioDetailPage({ params }: { params: Params 
                                         </div>
                                     </td>
                                     <td className="px-4 py-4 text-sm text-slate-600 hidden sm:table-cell">
-                                        {u.moradores && u.moradores.length > 0 ? u.moradores[0].nome : <span className="text-slate-400 italic">Sem acesso</span>}
+                                        {u.moradores && u.moradores.length > 0 ? u.moradores[0].nome : <span className="text-slate-400 italic">Sem morador</span>}
                                     </td>
                                     <td className="text-center px-4 py-4">
                                         <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${u.moradores && u.moradores.length > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
@@ -140,7 +140,7 @@ export default async function CondominioDetailPage({ params }: { params: Params 
                                                 Editar
                                             </Link>
                                             <Link href={`/admin/moradores/${u.id}`} className="text-sm text-amber-700 hover:text-amber-800 font-medium inline-flex items-center gap-1">
-                                                <FaKey className="h-3 w-3" /> Acesso
+                                                <FaKey className="h-3 w-3" /> Morador
                                             </Link>
                                         </div>
                                     </td>
