@@ -76,6 +76,7 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
 
     const totalUnidades = unidades.length;
     const totalComMorador = unidades.filter((u) => (u.moradores?.length || 0) > 0).length;
+    const filtroFormKey = `${condominioId}|${params.q || ''}`;
 
     return (
         <div className="max-w-5xl mx-auto space-y-6">
@@ -90,7 +91,7 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
                 </div>
             </div>
 
-            <form method="GET" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+            <form key={filtroFormKey} method="GET" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto] gap-3 items-end">
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-slate-700">Condomínio</label>
