@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { FaArrowLeft, FaBuilding, FaSave } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import { updateUnidade } from '@/actions/unidadeActions';
+import { firstOfRelation } from '@/lib/relations';
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ saved?: string; error?: string }>;
@@ -11,7 +12,7 @@ type UnidadeDetail = {
     bloco: string;
     apartamento: string;
     condominio: { id: string; nome: string } | { id: string; nome: string }[] | null;
-    moradores: { id: string; nome: string | null }[] | null;
+    moradores: { id: string; nome: string | null } | { id: string; nome: string | null }[] | null;
 };
 
 function getCondominioNome(condominio: UnidadeDetail['condominio']) {
@@ -63,6 +64,7 @@ export default async function UnidadeDetailPage({
     const condominioNome = getCondominioNome(unidade.condominio);
     const saved = query.saved === '1';
     const error = query.error;
+    const morador = firstOfRelation(unidade.moradores);
 
     return (
         <div className="max-w-lg mx-auto space-y-6">
@@ -107,10 +109,10 @@ export default async function UnidadeDetailPage({
                 {/* Morador vinculado à unidade */}
                 <div className="space-y-3 pt-2">
                     <p className="text-sm font-medium text-slate-700">Morador</p>
-                    {unidade.moradores && unidade.moradores.length > 0 ? (
+                    {morador ? (
                         <div className="rounded-xl border border-slate-200 p-3 bg-slate-50">
                             <p className="text-sm text-slate-800">
-                                {unidade.moradores[0].nome || 'Proprietário sem nome'}
+                                {morador.nome || 'Proprietário sem nome'}
                             </p>
                             <p className="text-xs text-slate-500">
                                 Esta unidade já possui morador cadastrado.

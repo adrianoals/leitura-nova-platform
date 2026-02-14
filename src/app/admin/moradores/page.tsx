@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { FaSearch, FaDoorOpen, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import FilterApplyButton from '@/components/admin/FilterApplyButton';
+import { firstOfRelation } from '@/lib/relations';
 
 type SearchParams = Promise<{
     condominio_id?: string;
@@ -15,7 +16,7 @@ type UnidadeAccessRow = {
     apartamento: string;
     condominio_id: string;
     condominio: { id: string; nome: string } | { id: string; nome: string }[] | null;
-    moradores: { id: string; nome: string | null }[] | null;
+    moradores: { id: string; nome: string | null } | { id: string; nome: string | null }[] | null;
 };
 
 type CondominioOption = {
@@ -69,13 +70,14 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
 
         unidades = ((unidadesRaw || []) as UnidadeAccessRow[]).filter((u) => {
             if (!termoBusca) return true;
-            const texto = `${u.bloco} ${u.apartamento} ${u.moradores?.[0]?.nome || ''}`.toLowerCase();
+            const primeiroMorador = firstOfRelation(u.moradores);
+            const texto = `${u.bloco} ${u.apartamento} ${primeiroMorador?.nome || ''}`.toLowerCase();
             return texto.includes(termoBusca);
         });
     }
 
     const totalUnidades = unidades.length;
-    const totalComMorador = unidades.filter((u) => (u.moradores?.length || 0) > 0).length;
+    const totalComMorador = unidades.filter((u) => Boolean(firstOfRelation(u.moradores))).length;
     const filtroFormKey = `${condominioId}|${params.q || ''}`;
 
     return (
@@ -153,7 +155,7 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
                         <tbody>
                             {unidades.map((u) => {
                                 const condNome = getCondominioNome(u.condominio);
-                                const proprietario = u.moradores?.[0];
+                                const proprietario = firstOfRelation(u.moradores);
                                 const hasAccess = Boolean(proprietario);
 
                                 return (

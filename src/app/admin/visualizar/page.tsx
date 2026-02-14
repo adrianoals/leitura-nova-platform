@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { FaEye, FaBuilding, FaDoorOpen, FaExternalLinkAlt } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
+import { firstOfRelation } from '@/lib/relations';
 
 type SearchParams = Promise<{
     condominio?: string;
@@ -17,7 +18,7 @@ type UnidadeRow = {
     bloco: string;
     apartamento: string;
     condominio_id: string;
-    moradores: { nome: string | null }[] | null;
+    moradores: { nome: string | null } | { nome: string | null }[] | null;
 };
 
 export default async function VisualizarComoPage({ searchParams }: { searchParams: SearchParams }) {
@@ -112,7 +113,7 @@ export default async function VisualizarComoPage({ searchParams }: { searchParam
                         <div className="text-sm text-yellow-700 space-y-1">
                             <p><strong>Condomínio:</strong> {condominioSelecionado?.nome}</p>
                             <p><strong>Unidade:</strong> {unidadeSelecionada.bloco} — {unidadeSelecionada.apartamento}</p>
-                            <p><strong>Proprietário:</strong> {unidadeSelecionada.moradores?.[0]?.nome || 'Sem morador configurado'}</p>
+                            <p><strong>Proprietário:</strong> {firstOfRelation(unidadeSelecionada.moradores)?.nome || 'Sem morador configurado'}</p>
                         </div>
                     </div>
                 )}

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { FaArrowLeft, FaDoorOpen, FaTint, FaFire, FaCamera, FaPlus, FaKey } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import DeleteCondominioButton from '@/components/admin/DeleteCondominioButton';
+import { firstOfRelation } from '@/lib/relations';
 
 type Params = Promise<{ id: string }>;
 
@@ -17,7 +18,7 @@ type UnidadeRow = {
     id: string;
     bloco: string;
     apartamento: string;
-    moradores: { id: string; nome: string | null }[] | null;
+    moradores: { id: string; nome: string | null } | { id: string; nome: string | null }[] | null;
 };
 
 export default async function CondominioDetailPage({ params }: { params: Params }) {
@@ -90,11 +91,11 @@ export default async function CondominioDetailPage({ params }: { params: Params 
                     <p className="text-xs text-slate-500">Unidades</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
-                    <p className="text-2xl font-bold text-slate-900">{unidades.filter((u) => (u.moradores?.length || 0) > 0).length}</p>
+                    <p className="text-2xl font-bold text-slate-900">{unidades.filter((u) => Boolean(firstOfRelation(u.moradores))).length}</p>
                     <p className="text-xs text-slate-500">Moradores</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
-                    <p className="text-2xl font-bold text-yellow-600">{unidades.filter((u) => (u.moradores?.length || 0) === 0).length}</p>
+                    <p className="text-2xl font-bold text-yellow-600">{unidades.filter((u) => !firstOfRelation(u.moradores)).length}</p>
                     <p className="text-xs text-slate-500">Sem Morador</p>
                 </div>
             </div>
@@ -118,7 +119,11 @@ export default async function CondominioDetailPage({ params }: { params: Params 
                             </tr>
                         </thead>
                         <tbody>
-                            {unidades.map((u) => (
+                            {unidades.map((u) => {
+                                const morador = firstOfRelation(u.moradores);
+                                const hasMorador = Boolean(morador);
+
+                                return (
                                 <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
@@ -127,11 +132,11 @@ export default async function CondominioDetailPage({ params }: { params: Params 
                                         </div>
                                     </td>
                                     <td className="px-4 py-4 text-sm text-slate-600 hidden sm:table-cell">
-                                        {u.moradores && u.moradores.length > 0 ? u.moradores[0].nome : <span className="text-slate-400 italic">Sem morador</span>}
+                                        {morador?.nome || <span className="text-slate-400 italic">Sem morador</span>}
                                     </td>
                                     <td className="text-center px-4 py-4">
-                                        <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${u.moradores && u.moradores.length > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                                            {u.moradores && u.moradores.length > 0 ? 'Ativo' : 'Pendente'}
+                                        <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${hasMorador ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                                            {hasMorador ? 'Ativo' : 'Pendente'}
                                         </span>
                                     </td>
                                     <td className="text-right px-6 py-4">
@@ -145,7 +150,8 @@ export default async function CondominioDetailPage({ params }: { params: Params 
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                                );
+                            })}
                             {unidades.length === 0 && (
                                 <tr>
                                     <td colSpan={4} className="px-6 py-8 text-center text-sm text-slate-500">

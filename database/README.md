@@ -20,6 +20,7 @@ Execute os scripts **na ordem** no **SQL Editor** do Supabase Dashboard:
 | 5 | `05_reading_window.sql` | **Descontinuada** (mantida como no-op) |
 | 6 | `06_unique_access_per_unit.sql` | Regra de 1 acesso por unidade |
 | 7 | `07_fix_storage_policy_unit_owner.sql` | Corrige leitura de fotos por unidade |
+| 8 | `08_add_morador_email.sql` | Adiciona email redundante em moradores |
 
 ## Modelo de Dados
 

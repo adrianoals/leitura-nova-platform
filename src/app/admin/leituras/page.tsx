@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { FaClipboardList, FaTint, FaFire, FaSearch, FaPlus, FaImage, FaDoorOpen } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import FilterApplyButton from '@/components/admin/FilterApplyButton';
+import { firstOfRelation } from '@/lib/relations';
 
 type SearchParams = Promise<{
     condominio_id?: string;
@@ -18,7 +19,7 @@ type UnidadeRow = {
     id: string;
     bloco: string;
     apartamento: string;
-    moradores: { id: string; nome: string | null }[] | null;
+    moradores: { id: string; nome: string | null } | { id: string; nome: string | null }[] | null;
 };
 
 type LeituraRow = {
@@ -106,7 +107,8 @@ export default async function LeiturasAdminPage({ searchParams }: { searchParams
 
         unidades = ((unidadesRaw || []) as UnidadeRow[]).filter((u) => {
             if (!termoBusca) return true;
-            const texto = `${u.bloco} ${u.apartamento} ${u.moradores?.[0]?.nome || ''}`.toLowerCase();
+            const primeiroMorador = firstOfRelation(u.moradores);
+            const texto = `${u.bloco} ${u.apartamento} ${primeiroMorador?.nome || ''}`.toLowerCase();
             return texto.includes(termoBusca);
         });
 
@@ -272,7 +274,7 @@ export default async function LeiturasAdminPage({ searchParams }: { searchParams
                                             </div>
                                         </td>
                                         <td className="px-4 py-4 text-sm text-slate-600 hidden md:table-cell">
-                                            {u.moradores?.[0]?.nome || <span className="italic text-slate-400">Sem morador</span>}
+                                            {firstOfRelation(u.moradores)?.nome || <span className="italic text-slate-400">Sem morador</span>}
                                         </td>
                                         <td className="text-right px-6 py-4">
                                             <Link

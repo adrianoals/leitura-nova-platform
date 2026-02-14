@@ -94,6 +94,7 @@ export async function createAcesso(formData: FormData) {
             unidade_id: parsed.data.unidade_id,
             auth_user_id: createdAuth.user.id,
             nome: parsed.data.nome || null,
+            email: parsed.data.email,
         });
 
     if (insertError) {
@@ -180,7 +181,7 @@ export async function updateAcesso(formData: FormData) {
 
         await supabase
             .from('moradores')
-            .update({ auth_user_id: recreatedAuth.user.id })
+            .update({ auth_user_id: recreatedAuth.user.id, email: parsed.data.email })
             .eq('id', morador.id);
     }
 
@@ -188,6 +189,7 @@ export async function updateAcesso(formData: FormData) {
         .from('moradores')
         .update({
             nome: parsed.data.nome || null,
+            email: parsed.data.email,
         })
         .eq('id', morador.id);
 

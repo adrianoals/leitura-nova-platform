@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { FaDoorOpen, FaSearch, FaBuilding } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import FilterApplyButton from '@/components/admin/FilterApplyButton';
+import { firstOfRelation } from '@/lib/relations';
 
 type SearchParams = Promise<{
     condominio_id?: string;
@@ -19,7 +20,7 @@ type UnidadeRow = {
     bloco: string;
     apartamento: string;
     condominio: { id: string; nome: string } | { id: string; nome: string }[] | null;
-    moradores: { id: string; nome: string | null }[] | null;
+    moradores: { id: string; nome: string | null } | { id: string; nome: string | null }[] | null;
 };
 
 function getCondominioNome(condominio: UnidadeRow['condominio']) {
@@ -165,7 +166,7 @@ export default async function UnidadesPage({ searchParams }: { searchParams: Sea
                         <tbody>
                             {unidades.map((u) => {
                                 const condominioNome = getCondominioNome(u.condominio);
-                                const primeiroMorador = u.moradores?.[0];
+                                const primeiroMorador = firstOfRelation(u.moradores);
                                 const hasAccess = Boolean(primeiroMorador);
 
                                 return (

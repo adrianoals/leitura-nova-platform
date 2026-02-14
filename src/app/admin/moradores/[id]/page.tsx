@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { FaArrowLeft, FaSave, FaUserCheck, FaUserClock } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { createAcesso, updateAcesso } from '@/actions/acessoActions';
+import { firstOfRelation } from '@/lib/relations';
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ created?: string; saved?: string; error?: string }>;
@@ -12,7 +12,10 @@ type UnidadeAccessDetail = {
     bloco: string;
     apartamento: string;
     condominio: { id: string; nome: string } | { id: string; nome: string }[] | null;
-    moradores: { id: string; nome: string | null; auth_user_id: string | null }[] | null;
+    moradores:
+        | { id: string; nome: string | null; auth_user_id: string | null; email: string | null }
+        | { id: string; nome: string | null; auth_user_id: string | null; email: string | null }[]
+        | null;
 };
 
 function getCondominioNome(condominio: UnidadeAccessDetail['condominio']) {
@@ -45,7 +48,8 @@ export default async function MoradorDetailPage({
             moradores (
                 id,
                 nome,
-                auth_user_id
+                auth_user_id,
+                email
             )
         `)
         .eq('id', id)
@@ -62,28 +66,12 @@ export default async function MoradorDetailPage({
         );
     }
 
-    const acesso = unidade.moradores?.[0] || null;
+    const acesso = firstOfRelation(unidade.moradores);
     const condominioNome = getCondominioNome(unidade.condominio);
     const created = query.created === '1';
     const saved = query.saved === '1';
     const error = query.error;
-
-    let email = '';
-    let adminClientError = '';
-
-    if (acesso?.auth_user_id) {
-        try {
-            const adminClient = createAdminClient();
-            const { data: authData, error: authError } = await adminClient.auth.admin.getUserById(acesso.auth_user_id);
-            if (!authError) {
-                email = authData.user?.email || '';
-            } else {
-                adminClientError = 'Não foi possível carregar o email de login deste morador.';
-            }
-        } catch {
-            adminClientError = 'SUPABASE_SERVICE_ROLE_KEY não configurada para gerenciar moradores.';
-        }
-    }
+    const email = acesso?.email || '';
 
     return (
         <div className="max-w-lg mx-auto space-y-6">
@@ -112,12 +100,6 @@ export default async function MoradorDetailPage({
             {error && (
                 <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                     {decodeURIComponent(error)}
-                </div>
-            )}
-
-            {adminClientError && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                    {adminClientError}
                 </div>
             )}
 

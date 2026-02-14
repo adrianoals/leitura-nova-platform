@@ -52,15 +52,18 @@ CREATE TABLE IF NOT EXISTS moradores (
     unidade_id      UUID NOT NULL UNIQUE REFERENCES unidades(id) ON DELETE CASCADE,
     auth_user_id    UUID UNIQUE REFERENCES auth.users(id) ON DELETE SET NULL,
     nome            TEXT,
+    email           TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 COMMENT ON TABLE moradores IS 'Moradores vinculados a unidades. auth_user_id liga ao Supabase Auth';
 COMMENT ON COLUMN moradores.auth_user_id IS 'UUID do usuário no Supabase Auth (1 login → 1 unidade)';
+COMMENT ON COLUMN moradores.email IS 'Email de login do morador (redundante com auth.users para facilitar gestão)';
 
 CREATE INDEX idx_moradores_unidade ON moradores(unidade_id);
 CREATE INDEX idx_moradores_auth ON moradores(auth_user_id);
+CREATE INDEX idx_moradores_email ON moradores(email);
 
 -- ===================
 -- ADMIN USERS
