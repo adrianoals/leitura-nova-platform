@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { FaArrowLeft, FaSave, FaUserCheck, FaUserClock } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import { createAcesso, updateAcesso } from '@/actions/acessoActions';
+import Input from '@/components/auth/Input';
 import { firstOfRelation } from '@/lib/relations';
 
 type Params = Promise<{ id: string }>;
@@ -128,9 +129,11 @@ export default async function MoradorDetailPage({
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-700">Senha Inicial</label>
-                        <input type="password" name="senha"
-                            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-vscode-blue/20 focus:border-vscode-blue transition-all"
+                        <Input
+                            id="senha-inicial"
+                            type="password"
+                            name="senha"
+                            label="Senha Inicial"
                             placeholder="Mínimo 6 caracteres"
                             minLength={6}
                             required
@@ -166,9 +169,11 @@ export default async function MoradorDetailPage({
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-700">Nova Senha (opcional)</label>
-                        <input type="password" name="senha"
-                            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-vscode-blue/20 focus:border-vscode-blue transition-all"
+                        <Input
+                            id="nova-senha"
+                            type="password"
+                            name="senha"
+                            label="Nova Senha (opcional)"
                             placeholder="Preencha apenas para redefinir"
                             minLength={6}
                         />

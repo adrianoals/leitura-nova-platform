@@ -16,6 +16,11 @@ const leituraSchema = z.object({
     valor: z.coerce.number().min(0, 'Valor inválido'),
 });
 
+const fechamentoSchema = z.object({
+    condominio_id: z.string().uuid('Condomínio inválido'),
+    mes_referencia: z.string().regex(/^\d{4}-\d{2}$/, 'Mês inválido'),
+});
+
 async function ensureAdmin() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -53,6 +58,29 @@ function buildNovaLeituraRedirect(errorMessage: string, condominioId?: string, u
     }
 
     return `/admin/leituras/nova?${query.toString()}`;
+}
+
+function buildLeiturasRedirect(
+    condominioId: string,
+    mesReferencia: string,
+    extra: Record<string, string> = {}
+) {
+    const query = new URLSearchParams();
+
+    if (isUuid(condominioId)) {
+        query.set('condominio_id', condominioId);
+    }
+
+    if (/^\d{4}-\d{2}$/.test(mesReferencia)) {
+        query.set('mes', mesReferencia);
+    }
+
+    Object.entries(extra).forEach(([key, value]) => {
+        query.set(key, value);
+    });
+
+    const q = query.toString();
+    return q ? `/admin/leituras?${q}` : '/admin/leituras';
 }
 
 export async function createLeitura(formData: FormData) {
@@ -158,4 +186,78 @@ export async function createLeitura(formData: FormData) {
     }
 
     redirect(`/admin/leituras?${listQuery.toString()}`);
+}
+
+export async function fecharMesLeituras(formData: FormData) {
+    const { supabase, user } = await ensureAdmin();
+    const parsed = fechamentoSchema.safeParse({
+        condominio_id: formData.get('condominio_id'),
+        mes_referencia: formData.get('mes_referencia'),
+    });
+
+    const condominioId = String(formData.get('condominio_id') || '');
+    const mesReferencia = String(formData.get('mes_referencia') || '');
+
+    if (!parsed.success) {
+        redirect(buildLeiturasRedirect(condominioId, mesReferencia, { error: 'Dados inválidos para fechar o mês' }));
+    }
+
+    const { error } = await supabase
+        .from('fechamentos_mensais')
+        .upsert(
+            {
+                condominio_id: parsed.data.condominio_id,
+                mes_referencia: parsed.data.mes_referencia,
+                fechado: true,
+                fechado_em: new Date().toISOString(),
+                fechado_por_admin_auth_user_id: user.id,
+            },
+            { onConflict: 'condominio_id,mes_referencia' }
+        );
+
+    if (error) {
+        redirect(buildLeiturasRedirect(parsed.data.condominio_id, parsed.data.mes_referencia, { error: 'Não foi possível fechar o mês' }));
+    }
+
+    revalidatePath('/admin/leituras');
+    revalidatePath('/app');
+    revalidatePath('/app/leituras');
+    redirect(buildLeiturasRedirect(parsed.data.condominio_id, parsed.data.mes_referencia, { closed: '1' }));
+}
+
+export async function reabrirMesLeituras(formData: FormData) {
+    const { supabase } = await ensureAdmin();
+    const parsed = fechamentoSchema.safeParse({
+        condominio_id: formData.get('condominio_id'),
+        mes_referencia: formData.get('mes_referencia'),
+    });
+
+    const condominioId = String(formData.get('condominio_id') || '');
+    const mesReferencia = String(formData.get('mes_referencia') || '');
+
+    if (!parsed.success) {
+        redirect(buildLeiturasRedirect(condominioId, mesReferencia, { error: 'Dados inválidos para reabrir o mês' }));
+    }
+
+    const { error } = await supabase
+        .from('fechamentos_mensais')
+        .upsert(
+            {
+                condominio_id: parsed.data.condominio_id,
+                mes_referencia: parsed.data.mes_referencia,
+                fechado: false,
+                fechado_em: null,
+                fechado_por_admin_auth_user_id: null,
+            },
+            { onConflict: 'condominio_id,mes_referencia' }
+        );
+
+    if (error) {
+        redirect(buildLeiturasRedirect(parsed.data.condominio_id, parsed.data.mes_referencia, { error: 'Não foi possível reabrir o mês' }));
+    }
+
+    revalidatePath('/admin/leituras');
+    revalidatePath('/app');
+    revalidatePath('/app/leituras');
+    redirect(buildLeiturasRedirect(parsed.data.condominio_id, parsed.data.mes_referencia, { reopened: '1' }));
 }

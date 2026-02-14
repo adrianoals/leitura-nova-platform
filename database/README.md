@@ -21,13 +21,15 @@ Execute os scripts **na ordem** no **SQL Editor** do Supabase Dashboard:
 | 6 | `06_unique_access_per_unit.sql` | Regra de 1 acesso por unidade |
 | 7 | `07_fix_storage_policy_unit_owner.sql` | Corrige leitura de fotos por unidade |
 | 8 | `08_add_morador_email.sql` | Adiciona email redundante em moradores |
+| 9 | `09_monthly_closure.sql` | Fechamento mensal por condomínio + visibilidade controlada para morador |
 
 ## Modelo de Dados
 
 ```
 condominios (1) ──→ (N) unidades (1) ──→ (1) moradores
       │                    │
-      └──→ (N) sindicos    └──→ (N) leituras_mensais (1) ──→ (N) fotos_leitura
+      ├──→ (N) sindicos    └──→ (N) leituras_mensais (1) ──→ (N) fotos_leitura
+      └──→ (N) fechamentos_mensais
 
 auth.users ──→ moradores.auth_user_id
            ──→ sindicos.auth_user_id
