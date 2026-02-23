@@ -1,8 +1,6 @@
 import Link from 'next/link';
 import { FaArrowLeft, FaDoorOpen, FaTint, FaFire, FaCamera, FaPlus, FaKey } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
-import DeleteUnidadeButton from '@/components/admin/DeleteUnidadeButton';
-import DeleteMoradorButton from '@/components/admin/DeleteMoradorButton';
 import ActionToast from '@/components/admin/ActionToast';
 import { firstOfRelation } from '@/lib/relations';
 
@@ -166,18 +164,6 @@ export default async function CondominioDetailPage({
                                             <Link href={`/admin/moradores/${u.id}`} className="text-sm text-amber-700 hover:text-amber-800 font-medium inline-flex items-center gap-1">
                                                 <FaKey className="h-3 w-3" /> Morador
                                             </Link>
-                                            {morador && (
-                                                <DeleteMoradorButton
-                                                    moradorId={morador.id}
-                                                    returnPath={`/admin/moradores?condominio_id=${cond.id}`}
-                                                    compact
-                                                />
-                                            )}
-                                            <DeleteUnidadeButton
-                                                unidadeId={u.id}
-                                                returnPath={`/admin/condominios/${cond.id}`}
-                                                compact
-                                            />
                                         </div>
                                     </td>
                                 </tr>
