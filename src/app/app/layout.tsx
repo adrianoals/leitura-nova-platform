@@ -5,6 +5,7 @@ export const metadata = {
     title: 'Portal do Morador | Leitura Nova',
     robots: { index: false, follow: false },
 };
+export const preferredRegion = 'gru1';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (

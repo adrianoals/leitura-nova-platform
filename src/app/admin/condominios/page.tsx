@@ -13,13 +13,6 @@ export default async function CondominiosPage({ searchParams }: { searchParams: 
     const query = await searchParams;
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-        const { redirect } = await import('next/navigation');
-        redirect('/login/admin');
-    }
-
     const { data: condominios } = await supabase
         .from('condominios')
         .select(`

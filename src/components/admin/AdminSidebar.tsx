@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -37,6 +37,12 @@ export default function AdminSidebar() {
         return pathname.startsWith(href);
     };
 
+    useEffect(() => {
+        navItems.forEach((item) => {
+            router.prefetch(item.href);
+        });
+    }, [router]);
+
     const handleLogout = async () => {
         await supabase.auth.signOut();
         router.push('/login');
@@ -65,6 +71,8 @@ export default function AdminSidebar() {
                         <Link
                             key={item.href}
                             href={item.href}
+                            prefetch
+                            onMouseEnter={() => router.prefetch(item.href)}
                             onClick={() => setMobileOpen(false)}
                             className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${active
                                 ? 'bg-yellow-500 text-slate-900 shadow-lg shadow-yellow-500/25'

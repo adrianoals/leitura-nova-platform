@@ -1,24 +1,7 @@
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
 import CondominioForm from '@/components/admin/CondominioForm';
 import { FaBuilding } from 'react-icons/fa';
 
-export default async function NovoCondominioPage() {
-    const supabase = await createClient();
-
-    // Check auth
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) redirect('/login/admin');
-
-    // Check admin role
-    const { data: adminUser } = await supabase
-        .from('admin_users')
-        .select('id')
-        .eq('auth_user_id', user.id)
-        .single();
-
-    if (!adminUser) redirect('/app');
-
+export default function NovoCondominioPage() {
     return (
         <div className="max-w-4xl mx-auto">
             <div className="mb-8">

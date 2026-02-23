@@ -35,25 +35,26 @@ export default async function CondominioDetailPage({
     const deleted = query.deleted === '1';
     const errorMessage = query.error ? decodeURIComponent(query.error) : '';
 
-    const { data: cond } = await supabase
-        .from('condominios')
-        .select('id, nome, tem_agua, tem_gas, envio_leitura_morador_habilitado')
-        .eq('id', id)
-        .single<CondominioDetail>();
-
-    const { data: unidadesRaw } = await supabase
-        .from('unidades')
-        .select(`
-            id,
-            bloco,
-            apartamento,
-            moradores (
+    const [{ data: cond }, { data: unidadesRaw }] = await Promise.all([
+        supabase
+            .from('condominios')
+            .select('id, nome, tem_agua, tem_gas, envio_leitura_morador_habilitado')
+            .eq('id', id)
+            .single<CondominioDetail>(),
+        supabase
+            .from('unidades')
+            .select(`
                 id,
-                nome
-            )
-        `)
-        .eq('condominio_id', id)
-        .order('apartamento', { ascending: true });
+                bloco,
+                apartamento,
+                moradores (
+                    id,
+                    nome
+                )
+            `)
+            .eq('condominio_id', id)
+            .order('apartamento', { ascending: true }),
+    ]);
 
     const unidades = (unidadesRaw || []) as UnidadeRow[];
 

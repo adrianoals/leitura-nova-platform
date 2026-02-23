@@ -7,6 +7,7 @@ export const metadata = {
     title: 'Admin | Leitura Nova',
     robots: { index: false, follow: false },
 };
+export const preferredRegion = 'gru1';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
     const supabase = await createClient();
