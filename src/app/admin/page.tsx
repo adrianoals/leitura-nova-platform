@@ -6,49 +6,41 @@ import { createClient } from '@/lib/supabase/server';
 export default async function AdminDashboard() {
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-        // Redirecionar para login admin se não estiver autenticado
-        // Em um app real, verificaríamos também a role do usuário (admin vs morador)
-        const { redirect } = await import('next/navigation');
-        redirect('/login/admin');
-    }
-
-    // Buscar dados reais do banco
-    // 1. Total de Condomínios
-    const { count: totalCondominios } = await supabase
-        .from('condominios')
-        .select('*', { count: 'exact', head: true });
-
-    // 2. Total de Unidades
-    const { count: totalUnidades } = await supabase
-        .from('unidades')
-        .select('*', { count: 'exact', head: true });
-
-    // 3. Leituras concluídas no mês atual
+    // Auth e role já são validados no admin layout.
+    // Executamos consultas independentes em paralelo para reduzir latência.
     const date = new Date();
     const mesReferencia = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
-    const { count: leiturasEsteMes } = await supabase
-        .from('leituras_mensais')
-        .select('*', { count: 'exact', head: true })
-        .eq('mes_referencia', mesReferencia);
-
-    const leiturasRealizadas = leiturasEsteMes || 0;
-
-    // 4. Lista de condomínios recentes
-    const { data: condominios } = await supabase
-        .from('condominios')
-        .select(`
+    const [
+        { count: totalCondominios },
+        { count: totalUnidades },
+        { count: leiturasEsteMes },
+        { data: condominios },
+    ] = await Promise.all([
+        supabase
+            .from('condominios')
+            .select('*', { count: 'exact', head: true }),
+        supabase
+            .from('unidades')
+            .select('*', { count: 'exact', head: true }),
+        supabase
+            .from('leituras_mensais')
+            .select('*', { count: 'exact', head: true })
+            .eq('mes_referencia', mesReferencia),
+        supabase
+            .from('condominios')
+            .select(`
             id,
             nome,
             tem_agua,
             tem_gas,
             unidades (count)
         `)
-        .limit(5)
-        .order('created_at', { ascending: false });
+            .limit(5)
+            .order('created_at', { ascending: false }),
+    ]);
+
+    const leiturasRealizadas = leiturasEsteMes || 0;
 
     // Ajustando os dados para o formato da tabela
     const condominiosList = (condominios || []).map(c => ({

@@ -197,11 +197,19 @@ export default async function LeiturasAdminPage({ searchParams }: { searchParams
     let unidadesList: UnidadeListRow[] = [];
 
     if (hasCondominioSelecionado) {
-        const { data: unidadesRaw } = await supabase
-            .from('unidades')
-            .select('id, bloco, apartamento')
-            .eq('condominio_id', selectedCondominioId)
-            .order('apartamento', { ascending: true });
+        const [{ data: unidadesRaw }, { data: fechamentoRaw }] = await Promise.all([
+            supabase
+                .from('unidades')
+                .select('id, bloco, apartamento')
+                .eq('condominio_id', selectedCondominioId)
+                .order('apartamento', { ascending: true }),
+            supabase
+                .from('fechamentos_mensais')
+                .select('fechado, fechado_em')
+                .eq('condominio_id', selectedCondominioId)
+                .eq('mes_referencia', selectedMes)
+                .maybeSingle(),
+        ]);
 
         unidadesList = ((unidadesRaw || []) as UnidadeListRow[]).filter((u) => {
             if (!termoBusca) return true;
@@ -234,13 +242,6 @@ export default async function LeiturasAdminPage({ searchParams }: { searchParams
                 .limit(500);
             leiturasMes = ((leiturasRaw || []) as unknown as LeituraRow[]).filter((l) => matchBuscaLeitura(l, termoBusca));
         }
-
-        const { data: fechamentoRaw } = await supabase
-            .from('fechamentos_mensais')
-            .select('fechado, fechado_em')
-            .eq('condominio_id', selectedCondominioId)
-            .eq('mes_referencia', selectedMes)
-            .maybeSingle();
         fechamento = (fechamentoRaw || null) as FechamentoRow | null;
     }
 

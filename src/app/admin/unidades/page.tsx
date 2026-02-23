@@ -43,42 +43,43 @@ export default async function UnidadesPage({ searchParams }: { searchParams: Sea
     const deleted = params.deleted === '1';
     const errorMessage = params.error ? decodeURIComponent(params.error) : '';
 
-    const { data: condominiosRaw } = await supabase
-        .from('condominios')
-        .select('id, nome')
-        .order('nome', { ascending: true });
+    const [{ data: condominiosRaw }, { data: unidadesRaw }] = await Promise.all([
+        supabase
+            .from('condominios')
+            .select('id, nome')
+            .order('nome', { ascending: true }),
+        selectedCondominioId
+            ? supabase
+                .from('unidades')
+                .select(`
+                    id,
+                    bloco,
+                    apartamento,
+                    condominio:condominios (
+                        id,
+                        nome
+                    ),
+                    moradores (
+                        id,
+                        nome
+                    )
+                `)
+                .eq('condominio_id', selectedCondominioId)
+                .order('apartamento', { ascending: true })
+            : Promise.resolve({ data: [] as UnidadeRow[] }),
+    ]);
 
     const condominios = (condominiosRaw || []) as CondominioOption[];
     const condominioSelecionado = condominios.find((c) => c.id === selectedCondominioId) || null;
     const hasCondominioSelecionado = Boolean(condominioSelecionado);
 
-    let unidades: UnidadeRow[] = [];
-
-    if (hasCondominioSelecionado) {
-        const { data: unidadesRaw } = await supabase
-            .from('unidades')
-            .select(`
-                id,
-                bloco,
-                apartamento,
-                condominio:condominios (
-                    id,
-                    nome
-                ),
-                moradores (
-                    id,
-                    nome
-                )
-            `)
-            .eq('condominio_id', selectedCondominioId)
-            .order('apartamento', { ascending: true });
-
-        unidades = ((unidadesRaw || []) as UnidadeRow[]).filter((u) => {
+    const unidades = hasCondominioSelecionado
+        ? ((unidadesRaw || []) as UnidadeRow[]).filter((u) => {
             if (!termoBusca) return true;
             const texto = `${u.bloco} ${u.apartamento}`.toLowerCase();
             return texto.includes(termoBusca);
-        });
-    }
+        })
+        : [];
 
     const novaUnidadeHref = hasCondominioSelecionado
         ? `/admin/unidades/nova?condominio_id=${selectedCondominioId}`

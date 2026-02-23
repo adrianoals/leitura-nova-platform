@@ -43,44 +43,45 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
 
     const supabase = await createClient();
 
-    const { data: condominiosRaw } = await supabase
-        .from('condominios')
-        .select('id, nome')
-        .order('nome', { ascending: true });
+    const [{ data: condominiosRaw }, { data: unidadesRaw }] = await Promise.all([
+        supabase
+            .from('condominios')
+            .select('id, nome')
+            .order('nome', { ascending: true }),
+        condominioId
+            ? supabase
+                .from('unidades')
+                .select(`
+                    id,
+                    bloco,
+                    apartamento,
+                    condominio_id,
+                    condominio:condominios (
+                        id,
+                        nome
+                    ),
+                    moradores (
+                        id,
+                        nome
+                    )
+                `)
+                .eq('condominio_id', condominioId)
+                .order('apartamento', { ascending: true })
+            : Promise.resolve({ data: [] as UnidadeAccessRow[] }),
+    ]);
 
     const condominios = (condominiosRaw || []) as CondominioOption[];
     const condominioSelecionado = condominios.find((c) => c.id === condominioId) || null;
     const hasCondominioSelecionado = Boolean(condominioSelecionado);
 
-    let unidades: UnidadeAccessRow[] = [];
-
-    if (hasCondominioSelecionado) {
-        const { data: unidadesRaw } = await supabase
-            .from('unidades')
-            .select(`
-                id,
-                bloco,
-                apartamento,
-                condominio_id,
-                condominio:condominios (
-                    id,
-                    nome
-                ),
-                moradores (
-                    id,
-                    nome
-                )
-            `)
-            .eq('condominio_id', condominioId)
-            .order('apartamento', { ascending: true });
-
-        unidades = ((unidadesRaw || []) as UnidadeAccessRow[]).filter((u) => {
+    const unidades = hasCondominioSelecionado
+        ? ((unidadesRaw || []) as UnidadeAccessRow[]).filter((u) => {
             if (!termoBusca) return true;
             const primeiroMorador = firstOfRelation(u.moradores);
             const texto = `${u.bloco} ${u.apartamento} ${primeiroMorador?.nome || ''}`.toLowerCase();
             return texto.includes(termoBusca);
-        });
-    }
+        })
+        : [];
 
     const totalUnidades = unidades.length;
     const totalComMorador = unidades.filter((u) => Boolean(firstOfRelation(u.moradores))).length;
