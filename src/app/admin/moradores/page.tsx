@@ -2,12 +2,16 @@ import Link from 'next/link';
 import { FaSearch, FaDoorOpen, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import FilterApplyButton from '@/components/admin/FilterApplyButton';
+import DeleteMoradorButton from '@/components/admin/DeleteMoradorButton';
+import ActionToast from '@/components/admin/ActionToast';
 import { firstOfRelation } from '@/lib/relations';
 
 type SearchParams = Promise<{
     condominio_id?: string;
     condominio?: string;
     q?: string;
+    deleted?: string;
+    error?: string;
 }>;
 
 type UnidadeAccessRow = {
@@ -34,6 +38,8 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
     const params = await searchParams;
     const condominioId = params.condominio_id || params.condominio || '';
     const termoBusca = (params.q || '').trim().toLowerCase();
+    const deleted = params.deleted === '1';
+    const errorMessage = params.error ? decodeURIComponent(params.error) : '';
 
     const supabase = await createClient();
 
@@ -136,6 +142,14 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
                 </div>
             </form>
 
+            {deleted && <ActionToast message="Morador excluído com sucesso." />}
+
+            {errorMessage && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                    {errorMessage}
+                </div>
+            )}
+
             {!hasCondominioSelecionado ? (
                 <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-600">
                     Selecione um condomínio para visualizar os moradores.
@@ -184,9 +198,18 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
                                             )}
                                         </td>
                                         <td className="text-right px-6 py-4">
-                                            <Link href={`/admin/moradores/${u.id}`} className="text-sm text-vscode-blue hover:text-vscode-blue-dark font-medium">
-                                                Gerenciar
-                                            </Link>
+                                            <div className="flex items-center justify-end gap-3">
+                                                <Link href={`/admin/moradores/${u.id}`} className="text-sm text-vscode-blue hover:text-vscode-blue-dark font-medium">
+                                                    Gerenciar
+                                                </Link>
+                                                {proprietario && (
+                                                    <DeleteMoradorButton
+                                                        moradorId={proprietario.id}
+                                                        returnPath={`/admin/moradores?condominio_id=${condominioId}`}
+                                                        compact
+                                                    />
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 );

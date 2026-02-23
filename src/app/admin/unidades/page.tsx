@@ -2,12 +2,16 @@ import Link from 'next/link';
 import { FaDoorOpen, FaSearch, FaBuilding } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import FilterApplyButton from '@/components/admin/FilterApplyButton';
+import DeleteUnidadeButton from '@/components/admin/DeleteUnidadeButton';
+import ActionToast from '@/components/admin/ActionToast';
 import { firstOfRelation } from '@/lib/relations';
 
 type SearchParams = Promise<{
     condominio_id?: string;
     q?: string;
     created?: string;
+    deleted?: string;
+    error?: string;
 }>;
 
 type CondominioOption = {
@@ -36,6 +40,8 @@ export default async function UnidadesPage({ searchParams }: { searchParams: Sea
     const termoBusca = (params.q || '').toLowerCase().trim();
     const selectedCondominioId = params.condominio_id || '';
     const created = params.created === '1';
+    const deleted = params.deleted === '1';
+    const errorMessage = params.error ? decodeURIComponent(params.error) : '';
 
     const { data: condominiosRaw } = await supabase
         .from('condominios')
@@ -101,6 +107,14 @@ export default async function UnidadesPage({ searchParams }: { searchParams: Sea
             {created && (
                 <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
                     Unidade criada com sucesso.
+                </div>
+            )}
+
+            {deleted && <ActionToast message="Unidade excluída com sucesso." />}
+
+            {errorMessage && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                    {errorMessage}
                 </div>
             )}
 
@@ -192,9 +206,16 @@ export default async function UnidadesPage({ searchParams }: { searchParams: Sea
                                             </span>
                                         </td>
                                         <td className="text-right px-6 py-4">
-                                            <Link href={`/admin/unidades/${u.id}`} className="text-sm text-vscode-blue hover:text-vscode-blue-dark font-medium">
-                                                Editar
-                                            </Link>
+                                            <div className="flex items-center justify-end gap-3">
+                                                <Link href={`/admin/unidades/${u.id}`} className="text-sm text-vscode-blue hover:text-vscode-blue-dark font-medium">
+                                                    Editar
+                                                </Link>
+                                                <DeleteUnidadeButton
+                                                    unidadeId={u.id}
+                                                    returnPath={`/admin/unidades?condominio_id=${selectedCondominioId}`}
+                                                    compact
+                                                />
+                                            </div>
                                         </td>
                                     </tr>
                                 );

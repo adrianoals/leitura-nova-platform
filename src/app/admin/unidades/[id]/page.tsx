@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { FaArrowLeft, FaBuilding, FaSave } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import { updateUnidade } from '@/actions/unidadeActions';
+import DeleteUnidadeButton from '@/components/admin/DeleteUnidadeButton';
 import { firstOfRelation } from '@/lib/relations';
 
 type Params = Promise<{ id: string }>;
@@ -19,6 +20,12 @@ function getCondominioNome(condominio: UnidadeDetail['condominio']) {
     if (!condominio) return 'Condomínio';
     if (Array.isArray(condominio)) return condominio[0]?.nome || 'Condomínio';
     return condominio.nome;
+}
+
+function getCondominioId(condominio: UnidadeDetail['condominio']) {
+    if (!condominio) return '';
+    if (Array.isArray(condominio)) return condominio[0]?.id || '';
+    return condominio.id;
 }
 
 export default async function UnidadeDetailPage({
@@ -65,6 +72,7 @@ export default async function UnidadeDetailPage({
     const saved = query.saved === '1';
     const error = query.error;
     const morador = firstOfRelation(unidade.moradores);
+    const condominioId = getCondominioId(unidade.condominio);
 
     return (
         <div className="max-w-lg mx-auto space-y-6">
@@ -133,6 +141,11 @@ export default async function UnidadeDetailPage({
                 >
                     <FaSave className="h-4 w-4" /> Salvar
                 </button>
+
+                <DeleteUnidadeButton
+                    unidadeId={unidade.id}
+                    returnPath={condominioId ? `/admin/unidades?condominio_id=${condominioId}` : '/admin/unidades'}
+                />
             </form>
         </div>
     );

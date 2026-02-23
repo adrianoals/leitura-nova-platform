@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { deleteAuthUsersByIds } from '@/lib/supabase/authCleanup';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -50,6 +51,11 @@ function buildNovaUnidadeRedirect(errorMessage: string, condominioId?: string) {
     }
 
     return `/admin/unidades/nova?${query.toString()}`;
+}
+
+function normalizeAdminPath(path: string | undefined, fallback: string) {
+    if (!path) return fallback;
+    return path.startsWith('/admin') ? path : fallback;
 }
 
 export async function createUnidade(formData: FormData) {
@@ -132,4 +138,60 @@ export async function updateUnidade(formData: FormData) {
     revalidatePath(`/admin/unidades/${parsed.data.id}`);
     revalidatePath('/admin/condominios');
     redirect(`/admin/unidades/${parsed.data.id}?saved=1`);
+}
+
+export async function deleteUnidade(unidadeId: string, returnPath?: string) {
+    const supabase = await ensureAdmin();
+
+    if (!isUuid(unidadeId)) {
+        redirect('/admin/unidades?error=Unidade%20inv%C3%A1lida%20para%20exclus%C3%A3o');
+    }
+
+    const { data: unidade } = await supabase
+        .from('unidades')
+        .select('id, condominio_id')
+        .eq('id', unidadeId)
+        .maybeSingle();
+
+    if (!unidade) {
+        redirect('/admin/unidades?error=Unidade%20n%C3%A3o%20encontrada');
+    }
+
+    const { data: morador } = await supabase
+        .from('moradores')
+        .select('auth_user_id')
+        .eq('unidade_id', unidadeId)
+        .maybeSingle();
+
+    if (morador?.auth_user_id) {
+        try {
+            const { failedIds } = await deleteAuthUsersByIds([morador.auth_user_id]);
+            if (failedIds.length > 0) {
+                redirect('/admin/unidades?error=N%C3%A3o%20foi%20poss%C3%ADvel%20remover%20o%20login%20vinculado');
+            }
+        } catch {
+            redirect('/admin/unidades?error=SUPABASE_SERVICE_ROLE_KEY%20n%C3%A3o%20configurada%20para%20exclus%C3%A3o%20de%20login');
+        }
+    }
+
+    const { error } = await supabase
+        .from('unidades')
+        .delete()
+        .eq('id', unidadeId);
+
+    if (error) {
+        redirect('/admin/unidades?error=N%C3%A3o%20foi%20poss%C3%ADvel%20excluir%20a%20unidade');
+    }
+
+    revalidatePath('/admin');
+    revalidatePath('/admin/unidades');
+    revalidatePath(`/admin/unidades/${unidadeId}`);
+    revalidatePath('/admin/moradores');
+    revalidatePath('/admin/leituras');
+    revalidatePath('/admin/condominios');
+    revalidatePath(`/admin/condominios/${unidade.condominio_id}`);
+
+    const baseReturn = normalizeAdminPath(returnPath, `/admin/unidades?condominio_id=${unidade.condominio_id}`);
+    const separator = baseReturn.includes('?') ? '&' : '?';
+    redirect(`${baseReturn}${separator}deleted=1`);
 }

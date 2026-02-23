@@ -3,10 +3,12 @@ import { FaArrowLeft, FaSave, FaUserCheck, FaUserClock } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import { createAcesso, updateAcesso } from '@/actions/acessoActions';
 import Input from '@/components/auth/Input';
+import DeleteMoradorButton from '@/components/admin/DeleteMoradorButton';
+import ActionToast from '@/components/admin/ActionToast';
 import { firstOfRelation } from '@/lib/relations';
 
 type Params = Promise<{ id: string }>;
-type SearchParams = Promise<{ created?: string; saved?: string; error?: string }>;
+type SearchParams = Promise<{ created?: string; saved?: string; deleted?: string; error?: string }>;
 
 type UnidadeAccessDetail = {
     id: string;
@@ -71,6 +73,7 @@ export default async function MoradorDetailPage({
     const condominioNome = getCondominioNome(unidade.condominio);
     const created = query.created === '1';
     const saved = query.saved === '1';
+    const deleted = query.deleted === '1';
     const error = query.error;
     const email = acesso?.email || '';
 
@@ -97,6 +100,8 @@ export default async function MoradorDetailPage({
                     Morador criado com sucesso.
                 </div>
             )}
+
+            {deleted && <ActionToast message="Morador excluído com sucesso." />}
 
             {error && (
                 <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -184,6 +189,11 @@ export default async function MoradorDetailPage({
                     >
                         <FaSave className="h-4 w-4" /> Salvar Morador
                     </button>
+
+                    <DeleteMoradorButton
+                        moradorId={acesso.id}
+                        returnPath={`/admin/moradores/${unidade.id}`}
+                    />
                 </form>
             )}
         </div>

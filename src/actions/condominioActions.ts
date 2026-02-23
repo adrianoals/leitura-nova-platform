@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { deleteAuthUsersByIds } from '@/lib/supabase/authCleanup';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -74,11 +75,69 @@ function encodeMessage(message: string) {
     return encodeURIComponent(message);
 }
 
+async function getAllUnidadeIdsByCondominio(supabase: Awaited<ReturnType<typeof createClient>>, condominioId: string) {
+    const pageSize = 1000;
+    let from = 0;
+    const ids: string[] = [];
+
+    while (true) {
+        const { data, error } = await supabase
+            .from('unidades')
+            .select('id')
+            .eq('condominio_id', condominioId)
+            .range(from, from + pageSize - 1);
+
+        if (error || !data || data.length === 0) {
+            break;
+        }
+
+        ids.push(...data.map((u) => u.id));
+
+        if (data.length < pageSize) {
+            break;
+        }
+
+        from += pageSize;
+    }
+
+    return ids;
+}
+
 export async function deleteCondominio(condominioId: string) {
     const supabase = await ensureAdmin();
 
     if (!condominioId) {
         redirect('/admin/condominios?error=' + encodeMessage('Condomínio inválido para exclusão'));
+    }
+
+    const unidadeIds = await getAllUnidadeIdsByCondominio(supabase, condominioId);
+
+    if (unidadeIds.length > 0) {
+        const moradoresAuthIds: string[] = [];
+        const chunkSize = 500;
+
+        for (let i = 0; i < unidadeIds.length; i += chunkSize) {
+            const chunk = unidadeIds.slice(i, i + chunkSize);
+            const { data: moradoresRaw } = await supabase
+                .from('moradores')
+                .select('auth_user_id')
+                .in('unidade_id', chunk);
+
+            moradoresAuthIds.push(
+                ...(moradoresRaw || [])
+                    .map((m) => m.auth_user_id)
+                    .filter((id): id is string => Boolean(id))
+            );
+        }
+
+        try {
+            const { failedIds } = await deleteAuthUsersByIds(moradoresAuthIds);
+            if (failedIds.length > 0) {
+                redirect('/admin/condominios?error=' + encodeMessage('Não foi possível remover todos os usuários de login vinculados'));
+            }
+        } catch {
+            redirect('/admin/condominios?error=' + encodeMessage('SUPABASE_SERVICE_ROLE_KEY não configurada para exclusão de logins'));
+        }
     }
 
     const { error } = await supabase

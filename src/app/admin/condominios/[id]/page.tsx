@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import { FaArrowLeft, FaDoorOpen, FaTint, FaFire, FaCamera, FaPlus, FaKey } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
-import DeleteCondominioButton from '@/components/admin/DeleteCondominioButton';
+import DeleteUnidadeButton from '@/components/admin/DeleteUnidadeButton';
+import DeleteMoradorButton from '@/components/admin/DeleteMoradorButton';
+import ActionToast from '@/components/admin/ActionToast';
 import { firstOfRelation } from '@/lib/relations';
 
 type Params = Promise<{ id: string }>;
+type SearchParams = Promise<{ deleted?: string; error?: string }>;
 
 type CondominioDetail = {
     id: string;
@@ -21,9 +24,18 @@ type UnidadeRow = {
     moradores: { id: string; nome: string | null } | { id: string; nome: string | null }[] | null;
 };
 
-export default async function CondominioDetailPage({ params }: { params: Params }) {
+export default async function CondominioDetailPage({
+    params,
+    searchParams,
+}: {
+    params: Params;
+    searchParams: SearchParams;
+}) {
     const { id } = await params;
+    const query = await searchParams;
     const supabase = await createClient();
+    const deleted = query.deleted === '1';
+    const errorMessage = query.error ? decodeURIComponent(query.error) : '';
 
     const { data: cond } = await supabase
         .from('condominios')
@@ -81,7 +93,6 @@ export default async function CondominioDetailPage({ params }: { params: Params 
                     <Link href={`/admin/unidades/nova?condominio_id=${cond.id}`} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all">
                         <FaDoorOpen className="h-3 w-3" /> Unidade
                     </Link>
-                    <DeleteCondominioButton condominioId={cond.id} />
                 </div>
             </div>
 
@@ -99,6 +110,14 @@ export default async function CondominioDetailPage({ params }: { params: Params 
                     <p className="text-xs text-slate-500">Sem Morador</p>
                 </div>
             </div>
+
+            {deleted && <ActionToast message="Unidade excluída com sucesso." />}
+
+            {errorMessage && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                    {errorMessage}
+                </div>
+            )}
 
             <div>
                 <div className="flex items-center justify-between mb-4">
@@ -147,6 +166,18 @@ export default async function CondominioDetailPage({ params }: { params: Params 
                                             <Link href={`/admin/moradores/${u.id}`} className="text-sm text-amber-700 hover:text-amber-800 font-medium inline-flex items-center gap-1">
                                                 <FaKey className="h-3 w-3" /> Morador
                                             </Link>
+                                            {morador && (
+                                                <DeleteMoradorButton
+                                                    moradorId={morador.id}
+                                                    returnPath={`/admin/moradores?condominio_id=${cond.id}`}
+                                                    compact
+                                                />
+                                            )}
+                                            <DeleteUnidadeButton
+                                                unidadeId={u.id}
+                                                returnPath={`/admin/condominios/${cond.id}`}
+                                                compact
+                                            />
                                         </div>
                                     </td>
                                 </tr>

@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { deleteAuthUsersByIds } from '@/lib/supabase/authCleanup';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -18,6 +19,11 @@ const updateAcessoSchema = z.object({
     nome: z.string().trim().optional(),
     email: z.string().email('Email inválido'),
     senha: z.string().optional(),
+});
+
+const deleteAcessoSchema = z.object({
+    morador_id: z.string().uuid('Morador inválido'),
+    return_path: z.string().optional(),
 });
 
 async function ensureAdmin() {
@@ -43,6 +49,11 @@ async function ensureAdmin() {
 
 function encodeMessage(message: string) {
     return encodeURIComponent(message);
+}
+
+function normalizeAdminPath(path: string | null | undefined, fallback: string) {
+    if (!path) return fallback;
+    return path.startsWith('/admin') ? path : fallback;
 }
 
 export async function createAcesso(formData: FormData) {
@@ -202,4 +213,57 @@ export async function updateAcesso(formData: FormData) {
     revalidatePath('/admin/unidades');
     revalidatePath(`/admin/unidades/${morador.unidade_id}`);
     redirect(`/admin/moradores/${morador.unidade_id}?saved=1`);
+}
+
+export async function deleteMorador(formData: FormData) {
+    const supabase = await ensureAdmin();
+    const parsed = deleteAcessoSchema.safeParse({
+        morador_id: formData.get('morador_id'),
+        return_path: formData.get('return_path'),
+    });
+
+    if (!parsed.success) {
+        redirect('/admin/moradores?error=' + encodeMessage('Dados inválidos para exclusão'));
+    }
+
+    const { data: morador } = await supabase
+        .from('moradores')
+        .select('id, unidade_id, auth_user_id')
+        .eq('id', parsed.data.morador_id)
+        .maybeSingle();
+
+    if (!morador) {
+        redirect('/admin/moradores?error=' + encodeMessage('Morador não encontrado'));
+    }
+
+    if (morador.auth_user_id) {
+        try {
+            const { failedIds } = await deleteAuthUsersByIds([morador.auth_user_id]);
+            if (failedIds.length > 0) {
+                redirect('/admin/moradores?error=' + encodeMessage('Não foi possível remover o login vinculado'));
+            }
+        } catch {
+            redirect('/admin/moradores?error=' + encodeMessage('SUPABASE_SERVICE_ROLE_KEY não configurada para exclusão de login'));
+        }
+    }
+
+    const { error } = await supabase
+        .from('moradores')
+        .delete()
+        .eq('id', morador.id);
+
+    if (error) {
+        redirect('/admin/moradores?error=' + encodeMessage('Não foi possível excluir o morador'));
+    }
+
+    revalidatePath('/admin');
+    revalidatePath('/admin/moradores');
+    revalidatePath(`/admin/moradores/${morador.unidade_id}`);
+    revalidatePath('/admin/unidades');
+    revalidatePath(`/admin/unidades/${morador.unidade_id}`);
+
+    const fallback = `/admin/moradores/${morador.unidade_id}`;
+    const baseReturn = normalizeAdminPath(parsed.data.return_path, fallback);
+    const separator = baseReturn.includes('?') ? '&' : '?';
+    redirect(`${baseReturn}${separator}deleted=1`);
 }

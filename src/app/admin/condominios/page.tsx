@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { FaPlus, FaBuilding, FaSearch, FaTint, FaFire, FaCamera } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
+import DeleteCondominioButton from '@/components/admin/DeleteCondominioButton';
+import ActionToast from '@/components/admin/ActionToast';
 
 type SearchParams = Promise<{
     deleted?: string;
@@ -33,9 +35,7 @@ export default async function CondominiosPage({ searchParams }: { searchParams: 
     return (
         <div className="max-w-5xl mx-auto space-y-6">
             {query.deleted === '1' && (
-                <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                    Condomínio excluído com sucesso. As unidades e os moradores vinculados foram removidos em cascata.
-                </div>
+                <ActionToast message="Condomínio excluído com sucesso." />
             )}
             {query.error && (
                 <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -73,13 +73,15 @@ export default async function CondominiosPage({ searchParams }: { searchParams: 
             {/* List */}
             <div className="space-y-3">
                 {(condominios || []).map(cond => (
-                    <Link
+                    <div
                         key={cond.id}
-                        href={`/admin/condominios/${cond.id}`}
-                        className="block rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-vscode-blue/30 transition-all group"
+                        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-all"
                     >
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
+                        <div className="flex items-start justify-between gap-4">
+                            <Link
+                                href={`/admin/condominios/${cond.id}`}
+                                className="flex min-w-0 flex-1 items-center gap-4 group"
+                            >
                                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600 group-hover:bg-vscode-blue group-hover:text-white transition-colors">
                                     <FaBuilding className="h-5 w-5" />
                                 </div>
@@ -90,9 +92,9 @@ export default async function CondominiosPage({ searchParams }: { searchParams: 
                                         {cond.unidades?.[0]?.count || 0} unidades
                                     </p>
                                 </div>
-                            </div>
+                            </Link>
 
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-wrap items-center justify-end gap-3">
                                 {cond.tem_agua && (
                                     <span className="flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">
                                         <FaTint className="h-3 w-3" /> Água
@@ -108,9 +110,16 @@ export default async function CondominiosPage({ searchParams }: { searchParams: 
                                         <FaCamera className="h-3 w-3" /> Envio
                                     </span>
                                 )}
+                                <Link
+                                    href={`/admin/condominios/${cond.id}`}
+                                    className="text-sm font-medium text-vscode-blue hover:text-vscode-blue-dark"
+                                >
+                                    Abrir
+                                </Link>
+                                <DeleteCondominioButton condominioId={cond.id} compact />
                             </div>
                         </div>
-                    </Link>
+                    </div>
                 ))}
 
                 {(!condominios || condominios.length === 0) && (
