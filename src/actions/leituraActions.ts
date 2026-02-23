@@ -184,6 +184,7 @@ export async function createLeitura(formData: FormData) {
     if (isUuid(condominioIdForReturn)) {
         listQuery.set('condominio_id', condominioIdForReturn);
     }
+    listQuery.set('mes', parsed.data.mes_referencia);
 
     redirect(`/admin/leituras?${listQuery.toString()}`);
 }

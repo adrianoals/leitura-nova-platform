@@ -28,6 +28,8 @@ interface NovaLeituraFormProps {
     error?: string;
     initialCondominioId?: string;
     initialUnidadeId?: string;
+    initialTipo?: TipoLeitura | '';
+    initialMesReferencia?: string;
 }
 
 function getTiposDisponiveis(condominio?: CondominioInput): Array<{ value: TipoLeitura; label: string }> {
@@ -66,6 +68,8 @@ export default function NovaLeituraForm({
     error,
     initialCondominioId,
     initialUnidadeId,
+    initialTipo,
+    initialMesReferencia,
 }: NovaLeituraFormProps) {
     const condominioInicial = condominios.some((cond) => cond.id === initialCondominioId)
         ? (initialCondominioId as string)
@@ -77,12 +81,20 @@ export default function NovaLeituraForm({
         ? (initialUnidadeId as string)
         : '';
 
+    const condominioInicialObj = condominios.find((c) => c.id === condominioInicial);
+    const tiposIniciais = getTiposDisponiveis(condominioInicialObj);
+    const tipoInicial = tiposIniciais.some((t) => t.value === initialTipo)
+        ? (initialTipo as TipoLeitura)
+        : (tiposIniciais[0]?.value || '');
+
+    const mesInicial = /^\d{4}-\d{2}$/.test(initialMesReferencia || '')
+        ? (initialMesReferencia as string)
+        : getMesAtual();
+
     const [condominioId, setCondominioId] = useState(condominioInicial);
     const [unidadeId, setUnidadeId] = useState(unidadeInicial);
-    const [tipo, setTipo] = useState<TipoLeitura | ''>(() => {
-        const cond = condominios.find((c) => c.id === condominioInicial);
-        return getTiposDisponiveis(cond)[0]?.value || '';
-    });
+    const [tipo, setTipo] = useState<TipoLeitura | ''>(tipoInicial);
+    const [mesReferencia, setMesReferencia] = useState(mesInicial);
 
     const condominioSelecionado = useMemo(
         () => condominios.find((cond) => cond.id === condominioId),
@@ -115,7 +127,9 @@ export default function NovaLeituraForm({
         }
     }, [condominioId, unidadeId, unidadesFiltradas, tipo, tiposDisponiveis]);
 
-    const backHref = condominioId ? `/admin/leituras?condominio_id=${condominioId}` : '/admin/leituras';
+    const backHref = condominioId
+        ? `/admin/leituras?condominio_id=${condominioId}&mes=${mesReferencia}`
+        : '/admin/leituras';
 
     return (
         <div className="max-w-lg mx-auto space-y-6">
@@ -209,7 +223,8 @@ export default function NovaLeituraForm({
                         <input
                             type="month"
                             name="mes_referencia"
-                            defaultValue={getMesAtual()}
+                            value={mesReferencia}
+                            onChange={(e) => setMesReferencia(e.target.value)}
                             className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-vscode-blue/20 focus:border-vscode-blue transition-all"
                             required
                         />

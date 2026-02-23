@@ -5,6 +5,9 @@ type SearchParams = Promise<{
     error?: string;
     condominio_id?: string;
     unidade_id?: string;
+    tipo?: 'agua' | 'agua_fria' | 'agua_quente' | 'gas';
+    mes?: string;
+    pending?: string;
 }>;
 
 type CondominioInput = {
@@ -24,6 +27,12 @@ type UnidadeInput = {
 
 export default async function NovaLeituraPage({ searchParams }: { searchParams: SearchParams }) {
     const params = await searchParams;
+    const pending = String(params.pending || '');
+    const pendingSplit = pending.split('|');
+    const pendingUnidadeId = pendingSplit.length === 2 ? pendingSplit[0] : '';
+    const pendingTipo = pendingSplit.length === 2 ? pendingSplit[1] : '';
+    const initialTipoParam = (params.tipo || pendingTipo || '') as 'agua' | 'agua_fria' | 'agua_quente' | 'gas' | '';
+    const initialUnidadeId = pendingUnidadeId || params.unidade_id;
     const supabase = await createClient();
 
     const { data: condominios } = await supabase
@@ -42,7 +51,9 @@ export default async function NovaLeituraPage({ searchParams }: { searchParams: 
             unidades={(unidades || []) as UnidadeInput[]}
             error={params.error}
             initialCondominioId={params.condominio_id}
-            initialUnidadeId={params.unidade_id}
+            initialUnidadeId={initialUnidadeId}
+            initialTipo={initialTipoParam}
+            initialMesReferencia={params.mes}
         />
     );
 }

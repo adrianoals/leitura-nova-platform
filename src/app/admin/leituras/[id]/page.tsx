@@ -46,6 +46,34 @@ function formatTipo(tipo: LeituraDetail['tipo']) {
     return 'Agua';
 }
 
+function getTipoBadge(tipo: LeituraDetail['tipo']) {
+    if (tipo === 'agua_fria') {
+        return {
+            className: 'bg-cyan-100 text-cyan-700',
+            icon: <FaTint className="h-3 w-3" />,
+        };
+    }
+
+    if (tipo === 'agua_quente') {
+        return {
+            className: 'bg-rose-100 text-rose-700',
+            icon: <FaTint className="h-3 w-3" />,
+        };
+    }
+
+    if (tipo === 'gas') {
+        return {
+            className: 'bg-amber-100 text-amber-700',
+            icon: <FaFire className="h-3 w-3" />,
+        };
+    }
+
+    return {
+        className: 'bg-blue-100 text-blue-700',
+        icon: <FaTint className="h-3 w-3" />,
+    };
+}
+
 function getCondominioNome(
     condominio: { id: string; nome: string } | { id: string; nome: string }[] | null | undefined
 ) {
@@ -124,7 +152,7 @@ export default async function LeituraDetailPage({
 
     const unidade = leitura.unidade?.[0];
     const condominioNome = getCondominioNome(unidade?.condominio);
-    const isAgua = leitura.tipo === 'agua' || leitura.tipo === 'agua_fria' || leitura.tipo === 'agua_quente';
+    const badge = getTipoBadge(leitura.tipo);
     const fotos = leitura.fotos_leitura || [];
 
     let signedUrls = new Map<string, string>();
@@ -160,15 +188,9 @@ export default async function LeituraDetailPage({
 
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="flex flex-wrap items-center gap-3">
-                    {isAgua ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
-                            <FaTint className="h-3 w-3" /> {formatTipo(leitura.tipo)}
-                        </span>
-                    ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-700">
-                            <FaFire className="h-3 w-3" /> {formatTipo(leitura.tipo)}
-                        </span>
-                    )}
+                    <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${badge.className}`}>
+                        {badge.icon} {formatTipo(leitura.tipo)}
+                    </span>
                     <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
                         <FaCalendarAlt className="h-3 w-3" /> {formatMes(leitura.mes_referencia)}
                     </span>
