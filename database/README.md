@@ -22,6 +22,7 @@ Execute os scripts **na ordem** no **SQL Editor** do Supabase Dashboard:
 | 7 | `07_fix_storage_policy_unit_owner.sql` | Corrige leitura de fotos por unidade |
 | 8 | `08_add_morador_email.sql` | Adiciona email redundante em moradores |
 | 9 | `09_monthly_closure.sql` | Fechamento mensal por condomínio + visibilidade controlada para morador |
+| 10 | `10_add_consumo_to_leituras.sql` | Adiciona coluna `consumo` e trigger de recálculo automático |
 
 ## Modelo de Dados
 

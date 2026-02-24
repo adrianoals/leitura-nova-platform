@@ -3,14 +3,12 @@ import { redirect } from 'next/navigation';
 import { FaArrowLeft, FaCalendarAlt, FaFire, FaImage, FaTachometerAlt, FaThermometerHalf, FaTint } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import {
-    buildConsumoDeltaMap,
     formatMedicao,
     formatData,
     formatMes,
     formatTipo,
     formatUnidade,
     formatValor,
-    getConsumoDeltaKey,
     getMesLimite12Meses,
     getMoradorContextByAuthUserId,
     isMesValido,
@@ -25,14 +23,9 @@ type LeituraDetalheRow = {
     mes_referencia: string;
     data_leitura: string;
     medicao: number;
+    consumo: number | null;
     valor: number;
     fotos_leitura: { storage_path: string }[] | null;
-};
-
-type LeituraHistoricoDeltaRow = {
-    tipo: TipoLeitura;
-    mes_referencia: string;
-    medicao: number;
 };
 
 function getTipoIcon(tipo: TipoLeitura) {
@@ -103,6 +96,7 @@ export default async function LeituraMesPage({ params }: { params: Params }) {
             mes_referencia,
             data_leitura,
             medicao,
+            consumo,
             valor,
             fotos_leitura(storage_path)
         `)
@@ -111,26 +105,6 @@ export default async function LeituraMesPage({ params }: { params: Params }) {
         .order('tipo', { ascending: true });
 
     const leituras = (leiturasRaw || []) as unknown as LeituraDetalheRow[];
-    const tiposDoMes = Array.from(new Set(leituras.map((leitura) => leitura.tipo)));
-
-    const { data: historicoDeltaRaw } = tiposDoMes.length > 0
-        ? await supabase
-            .from('leituras_mensais')
-            .select('tipo, mes_referencia, medicao')
-            .eq('unidade_id', context.unidadeId)
-            .in('tipo', tiposDoMes)
-            .gte('mes_referencia', getMesLimite12Meses())
-            .lte('mes_referencia', mes)
-            .order('mes_referencia', { ascending: true })
-        : { data: [] as LeituraHistoricoDeltaRow[] };
-
-    const consumoDeltaMap = buildConsumoDeltaMap(
-        ((historicoDeltaRaw || []) as unknown as LeituraHistoricoDeltaRow[]).map((item) => ({
-            tipo: item.tipo,
-            mesReferencia: item.mes_referencia,
-            medicao: Number(item.medicao),
-        }))
-    );
     const paths = leituras.flatMap((l) => (l.fotos_leitura || []).map((f) => f.storage_path));
     const signedUrlByPath = new Map<string, string>();
 
@@ -167,7 +141,7 @@ export default async function LeituraMesPage({ params }: { params: Params }) {
                 leituras.map((leitura) => {
                     const Icon = getTipoIcon(leitura.tipo);
                     const fotos = leitura.fotos_leitura || [];
-                    const consumoDelta = consumoDeltaMap.get(getConsumoDeltaKey(leitura.tipo, leitura.mes_referencia));
+                    const consumoDelta = leitura.consumo === null || leitura.consumo === undefined ? null : Number(leitura.consumo);
 
                     return (
                         <div key={leitura.id} className={`rounded-2xl border-2 ${getTipoCardClass(leitura.tipo)} bg-white p-6 shadow-sm`}>

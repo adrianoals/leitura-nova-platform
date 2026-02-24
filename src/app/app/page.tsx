@@ -5,10 +5,8 @@ import DashboardCard from '@/components/morador/DashboardCard';
 import ConsumoChart from '@/components/morador/ConsumoChart';
 import { createClient } from '@/lib/supabase/server';
 import {
-    buildConsumoDeltaMap,
     formatMes,
     formatUnidade,
-    getConsumoDeltaKey,
     getMesAtual,
     getMesLimite12Meses,
     getMoradorContextByAuthUserId,
@@ -23,6 +21,7 @@ type LeituraRaw = {
     mes_referencia: string;
     data_leitura: string;
     medicao: number;
+    consumo: number | null;
     valor: number;
     criado_por_morador: boolean;
 };
@@ -34,6 +33,7 @@ function normalizeLeitura(leitura: LeituraRaw): LeituraMensal {
         mesReferencia: leitura.mes_referencia,
         dataLeitura: leitura.data_leitura,
         medicao: Number(leitura.medicao),
+        consumo: leitura.consumo === null || leitura.consumo === undefined ? null : Number(leitura.consumo),
         valor: Number(leitura.valor),
         fotos: [],
         criadoPorMorador: leitura.criado_por_morador,
@@ -78,7 +78,7 @@ export default async function AppDashboard() {
     const [{ data: leiturasRaw }, { data: fechamento }] = await Promise.all([
         supabase
             .from('leituras_mensais')
-            .select('id, tipo, mes_referencia, data_leitura, medicao, valor, criado_por_morador')
+            .select('id, tipo, mes_referencia, data_leitura, medicao, consumo, valor, criado_por_morador')
             .eq('unidade_id', context.unidadeId)
             .gte('mes_referencia', mesLimite)
             .order('mes_referencia', { ascending: false })
@@ -93,13 +93,6 @@ export default async function AppDashboard() {
     ]);
 
     const leituras = ((leiturasRaw || []) as unknown as LeituraRaw[]).map(normalizeLeitura);
-    const consumoDeltaMap = buildConsumoDeltaMap(
-        leituras.map((leitura) => ({
-            tipo: leitura.tipo,
-            mesReferencia: leitura.mesReferencia,
-            medicao: Number(leitura.medicao),
-        }))
-    );
     const mesFechado = fechamento?.fechado === true;
     const podeEnviarLeitura = context.envioLeituraMoradorHabilitado && !mesFechado;
 
@@ -134,28 +127,28 @@ export default async function AppDashboard() {
                     <DashboardCard
                         tipo="agua"
                         leitura={leituraAgua}
-                        consumoDelta={leituraAgua ? consumoDeltaMap.get(getConsumoDeltaKey('agua', leituraAgua.mesReferencia)) : null}
+                        consumoDelta={leituraAgua?.consumo}
                     />
                 )}
                 {tiposPermitidos.includes('agua_fria') && (
                     <DashboardCard
                         tipo="agua_fria"
                         leitura={leituraAguaFria}
-                        consumoDelta={leituraAguaFria ? consumoDeltaMap.get(getConsumoDeltaKey('agua_fria', leituraAguaFria.mesReferencia)) : null}
+                        consumoDelta={leituraAguaFria?.consumo}
                     />
                 )}
                 {tiposPermitidos.includes('agua_quente') && (
                     <DashboardCard
                         tipo="agua_quente"
                         leitura={leituraAguaQuente}
-                        consumoDelta={leituraAguaQuente ? consumoDeltaMap.get(getConsumoDeltaKey('agua_quente', leituraAguaQuente.mesReferencia)) : null}
+                        consumoDelta={leituraAguaQuente?.consumo}
                     />
                 )}
                 {tiposPermitidos.includes('gas') && (
                     <DashboardCard
                         tipo="gas"
                         leitura={leituraGas}
-                        consumoDelta={leituraGas ? consumoDeltaMap.get(getConsumoDeltaKey('gas', leituraGas.mesReferencia)) : null}
+                        consumoDelta={leituraGas?.consumo}
                     />
                 )}
             </div>

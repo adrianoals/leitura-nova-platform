@@ -116,45 +116,6 @@ export function formatUnidade(bloco?: string | null, apartamento?: string | null
     return 'Unidade';
 }
 
-type LeituraDeltaInput = {
-    tipo: TipoLeitura;
-    mesReferencia: string;
-    medicao: number;
-};
-
-export function getConsumoDeltaKey(tipo: TipoLeitura, mesReferencia: string) {
-    return `${tipo}|${mesReferencia}`;
-}
-
-export function buildConsumoDeltaMap(leituras: LeituraDeltaInput[]) {
-    const byTipo = new Map<TipoLeitura, LeituraDeltaInput[]>();
-
-    for (const leitura of leituras) {
-        const list = byTipo.get(leitura.tipo) || [];
-        list.push(leitura);
-        byTipo.set(leitura.tipo, list);
-    }
-
-    const deltaMap = new Map<string, number | null>();
-
-    for (const [tipo, list] of byTipo.entries()) {
-        const ordered = [...list].sort((a, b) => a.mesReferencia.localeCompare(b.mesReferencia));
-        let prev: number | null = null;
-
-        for (const leitura of ordered) {
-            const key = getConsumoDeltaKey(tipo, leitura.mesReferencia);
-            if (prev === null) {
-                deltaMap.set(key, null);
-            } else {
-                deltaMap.set(key, Number(leitura.medicao) - prev);
-            }
-            prev = Number(leitura.medicao);
-        }
-    }
-
-    return deltaMap;
-}
-
 export async function getMoradorContextByAuthUserId(
     supabase: {
         from: (table: string) => {

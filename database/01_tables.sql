@@ -106,6 +106,7 @@ CREATE TABLE IF NOT EXISTS leituras_mensais (
     mes_referencia              TEXT NOT NULL, -- formato: 'YYYY-MM'
     data_leitura                DATE NOT NULL,
     medicao                     NUMERIC(10, 2) NOT NULL,
+    consumo                     NUMERIC(10, 2), -- medicao atual - medicao anterior (mesma unidade/tipo)
     valor                       NUMERIC(10, 2) NOT NULL DEFAULT 0,
     criado_por_admin_auth_user_id UUID REFERENCES auth.users(id),
     criado_por_morador           BOOLEAN NOT NULL DEFAULT FALSE,
@@ -119,6 +120,7 @@ CREATE TABLE IF NOT EXISTS leituras_mensais (
 COMMENT ON TABLE leituras_mensais IS 'Leituras de água (fria/quente) e gás por unidade e mês';
 COMMENT ON COLUMN leituras_mensais.tipo IS 'agua = medidor único | agua_fria/agua_quente = 2 medidores | gas';
 COMMENT ON COLUMN leituras_mensais.mes_referencia IS 'Formato YYYY-MM (ex: 2026-02)';
+COMMENT ON COLUMN leituras_mensais.consumo IS 'Consumo calculado como medição atual - medição do mês anterior (mesma unidade/tipo)';
 COMMENT ON COLUMN leituras_mensais.criado_por_morador IS 'True se a leitura foi enviada pelo morador';
 
 CREATE INDEX idx_leituras_unidade ON leituras_mensais(unidade_id);

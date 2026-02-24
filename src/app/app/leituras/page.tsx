@@ -3,13 +3,11 @@ import { redirect } from 'next/navigation';
 import { FaArrowLeft, FaCalendarAlt, FaChevronRight, FaFire, FaTint, FaThermometerHalf } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import {
-    buildConsumoDeltaMap,
     formatData,
     formatMedicao,
     formatMes,
     formatTipo,
     formatValor,
-    getConsumoDeltaKey,
     getMesLimite12Meses,
     getMoradorContextByAuthUserId,
     type TipoLeitura,
@@ -21,6 +19,7 @@ type LeituraListRow = {
     mes_referencia: string;
     data_leitura: string;
     medicao: number;
+    consumo: number | null;
     valor: number;
 };
 
@@ -61,7 +60,7 @@ export default async function LeiturasPage() {
 
     const { data: leiturasRaw } = await supabase
         .from('leituras_mensais')
-        .select('id, tipo, mes_referencia, data_leitura, medicao, valor')
+        .select('id, tipo, mes_referencia, data_leitura, medicao, consumo, valor')
         .eq('unidade_id', context.unidadeId)
         .gte('mes_referencia', getMesLimite12Meses())
         .order('mes_referencia', { ascending: false })
@@ -71,15 +70,9 @@ export default async function LeiturasPage() {
     const leituras = ((leiturasRaw || []) as unknown as LeituraListRow[]).map((leitura) => ({
         ...leitura,
         medicao: Number(leitura.medicao),
+        consumo: leitura.consumo === null || leitura.consumo === undefined ? null : Number(leitura.consumo),
         valor: Number(leitura.valor),
     }));
-    const consumoDeltaMap = buildConsumoDeltaMap(
-        leituras.map((leitura) => ({
-            tipo: leitura.tipo,
-            mesReferencia: leitura.mes_referencia,
-            medicao: Number(leitura.medicao),
-        }))
-    );
     const meses = Array.from(new Set(leituras.map((l) => l.mes_referencia)));
 
     return (
@@ -131,7 +124,6 @@ export default async function LeiturasPage() {
                                 <div className="mt-4 flex flex-wrap gap-3">
                                     {leiturasMes.map((leitura) => {
                                         const Icon = getTipoIcon(leitura.tipo);
-                                        const consumoDelta = consumoDeltaMap.get(getConsumoDeltaKey(leitura.tipo, leitura.mes_referencia));
                                         return (
                                             <div
                                                 key={leitura.id}
@@ -141,7 +133,7 @@ export default async function LeiturasPage() {
                                                 <span className="font-medium">{formatTipo(leitura.tipo)}</span>
                                                 <span>Medicao {formatMedicao(Number(leitura.medicao))} m3</span>
                                                 <span>
-                                                    Consumo {consumoDelta === null || consumoDelta === undefined ? '-' : `${formatMedicao(consumoDelta)} m3`}
+                                                    Consumo {leitura.consumo === null || leitura.consumo === undefined ? '-' : `${formatMedicao(Number(leitura.consumo))} m3`}
                                                 </span>
                                                 <span>{formatValor(Number(leitura.valor))}</span>
                                                 <span className="text-slate-500">({formatData(leitura.data_leitura)})</span>

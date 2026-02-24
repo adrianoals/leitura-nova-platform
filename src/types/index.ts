@@ -23,6 +23,7 @@ export interface LeituraMensal {
   mesReferencia: string; // formato: 'YYYY-MM'
   dataLeitura: string;   // formato: 'YYYY-MM-DD'
   medicao: number;
+  consumo?: number | null; // delta em relação ao mês anterior
   valor: number;
   fotos: string[];
   criadoPorMorador?: boolean;
