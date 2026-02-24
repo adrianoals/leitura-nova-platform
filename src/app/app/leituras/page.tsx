@@ -3,10 +3,13 @@ import { redirect } from 'next/navigation';
 import { FaArrowLeft, FaCalendarAlt, FaChevronRight, FaFire, FaTint, FaThermometerHalf } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import {
+    buildConsumoDeltaMap,
     formatData,
+    formatMedicao,
     formatMes,
     formatTipo,
     formatValor,
+    getConsumoDeltaKey,
     getMesLimite12Meses,
     getMoradorContextByAuthUserId,
     type TipoLeitura,
@@ -65,7 +68,18 @@ export default async function LeiturasPage() {
         .order('data_leitura', { ascending: false })
         .limit(120);
 
-    const leituras = (leiturasRaw || []) as unknown as LeituraListRow[];
+    const leituras = ((leiturasRaw || []) as unknown as LeituraListRow[]).map((leitura) => ({
+        ...leitura,
+        medicao: Number(leitura.medicao),
+        valor: Number(leitura.valor),
+    }));
+    const consumoDeltaMap = buildConsumoDeltaMap(
+        leituras.map((leitura) => ({
+            tipo: leitura.tipo,
+            mesReferencia: leitura.mes_referencia,
+            medicao: Number(leitura.medicao),
+        }))
+    );
     const meses = Array.from(new Set(leituras.map((l) => l.mes_referencia)));
 
     return (
@@ -117,6 +131,7 @@ export default async function LeiturasPage() {
                                 <div className="mt-4 flex flex-wrap gap-3">
                                     {leiturasMes.map((leitura) => {
                                         const Icon = getTipoIcon(leitura.tipo);
+                                        const consumoDelta = consumoDeltaMap.get(getConsumoDeltaKey(leitura.tipo, leitura.mes_referencia));
                                         return (
                                             <div
                                                 key={leitura.id}
@@ -124,7 +139,10 @@ export default async function LeiturasPage() {
                                             >
                                                 <Icon className={`h-3.5 w-3.5 ${getTipoColor(leitura.tipo)}`} />
                                                 <span className="font-medium">{formatTipo(leitura.tipo)}</span>
-                                                <span>{Number(leitura.medicao)} m3</span>
+                                                <span>Medicao {formatMedicao(Number(leitura.medicao))} m3</span>
+                                                <span>
+                                                    Consumo {consumoDelta === null || consumoDelta === undefined ? '-' : `${formatMedicao(consumoDelta)} m3`}
+                                                </span>
                                                 <span>{formatValor(Number(leitura.valor))}</span>
                                                 <span className="text-slate-500">({formatData(leitura.data_leitura)})</span>
                                             </div>
@@ -139,4 +157,3 @@ export default async function LeiturasPage() {
         </div>
     );
 }
-

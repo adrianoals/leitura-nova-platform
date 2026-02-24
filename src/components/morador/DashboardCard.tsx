@@ -1,5 +1,6 @@
 import { FaTint, FaFire, FaCalendarAlt, FaTachometerAlt, FaThermometerHalf } from 'react-icons/fa';
 import { LeituraMensal } from '@/types';
+import { formatMedicao } from '@/lib/morador';
 
 // Helper de formatação simples (agora que removemos a dependência direta do mock)
 function formatarData(data: string) {
@@ -12,14 +13,21 @@ function formatarValor(valor: number) {
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+function formatarConsumoDelta(consumoDelta?: number | null) {
+    if (consumoDelta === null || consumoDelta === undefined) return '-';
+    const prefix = consumoDelta > 0 ? '+' : '';
+    return `${prefix}${formatMedicao(consumoDelta)} m3`;
+}
+
 interface DashboardCardProps {
     tipo: 'agua' | 'gas' | 'agua_fria' | 'agua_quente';
     leitura?: LeituraMensal;
+    consumoDelta?: number | null;
     label?: string; // Opcional: overwrite do label automático
     icon?: React.ElementType; // Opcional: overwrite do ícone
 }
 
-export default function DashboardCard({ tipo, leitura, label, icon }: DashboardCardProps) {
+export default function DashboardCard({ tipo, leitura, consumoDelta, label, icon }: DashboardCardProps) {
     // Definições padrão baseadas no tipo
     let defaultLabel = '';
     let DefaultIcon = FaTint;
@@ -89,7 +97,7 @@ export default function DashboardCard({ tipo, leitura, label, icon }: DashboardC
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                     <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-1">
                         <FaCalendarAlt className="h-3 w-3" />
@@ -100,13 +108,19 @@ export default function DashboardCard({ tipo, leitura, label, icon }: DashboardC
                 <div>
                     <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-1">
                         <FaTachometerAlt className="h-3 w-3" />
-                        Medição
+                        Medicao
                     </div>
-                    <p className="text-sm font-semibold text-slate-900">{leitura.medicao} m³</p>
+                    <p className="text-sm font-semibold text-slate-900">{formatMedicao(leitura.medicao)} m3</p>
                 </div>
                 <div>
                     <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-1">
-                        💰 Valor
+                        Delta
+                    </div>
+                    <p className="text-sm font-semibold text-slate-900">{formatarConsumoDelta(consumoDelta)}</p>
+                </div>
+                <div>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-1">
+                        Valor
                     </div>
                     <p className="text-lg font-bold text-slate-900">{formatarValor(leitura.valor)}</p>
                 </div>

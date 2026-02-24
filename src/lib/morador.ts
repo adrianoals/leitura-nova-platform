@@ -75,6 +75,13 @@ export function formatValor(valor: number) {
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+export function formatMedicao(medicao: number) {
+    return Number(medicao).toLocaleString('pt-BR', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+    });
+}
+
 export function formatTipo(tipo: TipoLeitura) {
     if (tipo === 'agua_fria') return 'Agua Fria';
     if (tipo === 'agua_quente') return 'Agua Quente';
@@ -107,6 +114,45 @@ export function formatUnidade(bloco?: string | null, apartamento?: string | null
     if (aptoLimpo) return `Apto ${aptoLimpo}`;
     if (blocoLimpo) return blocoLimpo;
     return 'Unidade';
+}
+
+type LeituraDeltaInput = {
+    tipo: TipoLeitura;
+    mesReferencia: string;
+    medicao: number;
+};
+
+export function getConsumoDeltaKey(tipo: TipoLeitura, mesReferencia: string) {
+    return `${tipo}|${mesReferencia}`;
+}
+
+export function buildConsumoDeltaMap(leituras: LeituraDeltaInput[]) {
+    const byTipo = new Map<TipoLeitura, LeituraDeltaInput[]>();
+
+    for (const leitura of leituras) {
+        const list = byTipo.get(leitura.tipo) || [];
+        list.push(leitura);
+        byTipo.set(leitura.tipo, list);
+    }
+
+    const deltaMap = new Map<string, number | null>();
+
+    for (const [tipo, list] of byTipo.entries()) {
+        const ordered = [...list].sort((a, b) => a.mesReferencia.localeCompare(b.mesReferencia));
+        let prev: number | null = null;
+
+        for (const leitura of ordered) {
+            const key = getConsumoDeltaKey(tipo, leitura.mesReferencia);
+            if (prev === null) {
+                deltaMap.set(key, null);
+            } else {
+                deltaMap.set(key, Number(leitura.medicao) - prev);
+            }
+            prev = Number(leitura.medicao);
+        }
+    }
+
+    return deltaMap;
 }
 
 export async function getMoradorContextByAuthUserId(
@@ -169,4 +215,3 @@ export async function getMoradorContextByAuthUserId(
 
     return context;
 }
-

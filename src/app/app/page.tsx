@@ -5,8 +5,10 @@ import DashboardCard from '@/components/morador/DashboardCard';
 import ConsumoChart from '@/components/morador/ConsumoChart';
 import { createClient } from '@/lib/supabase/server';
 import {
+    buildConsumoDeltaMap,
     formatMes,
     formatUnidade,
+    getConsumoDeltaKey,
     getMesAtual,
     getMesLimite12Meses,
     getMoradorContextByAuthUserId,
@@ -91,6 +93,13 @@ export default async function AppDashboard() {
     ]);
 
     const leituras = ((leiturasRaw || []) as unknown as LeituraRaw[]).map(normalizeLeitura);
+    const consumoDeltaMap = buildConsumoDeltaMap(
+        leituras.map((leitura) => ({
+            tipo: leitura.tipo,
+            mesReferencia: leitura.mesReferencia,
+            medicao: Number(leitura.medicao),
+        }))
+    );
     const mesFechado = fechamento?.fechado === true;
     const podeEnviarLeitura = context.envioLeituraMoradorHabilitado && !mesFechado;
 
@@ -125,16 +134,32 @@ export default async function AppDashboard() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {tiposPermitidos.includes('agua') && (
-                    <DashboardCard tipo="agua" leitura={leituraAgua} />
+                    <DashboardCard
+                        tipo="agua"
+                        leitura={leituraAgua}
+                        consumoDelta={leituraAgua ? consumoDeltaMap.get(getConsumoDeltaKey('agua', leituraAgua.mesReferencia)) : null}
+                    />
                 )}
                 {tiposPermitidos.includes('agua_fria') && (
-                    <DashboardCard tipo="agua_fria" leitura={leituraAguaFria} />
+                    <DashboardCard
+                        tipo="agua_fria"
+                        leitura={leituraAguaFria}
+                        consumoDelta={leituraAguaFria ? consumoDeltaMap.get(getConsumoDeltaKey('agua_fria', leituraAguaFria.mesReferencia)) : null}
+                    />
                 )}
                 {tiposPermitidos.includes('agua_quente') && (
-                    <DashboardCard tipo="agua_quente" leitura={leituraAguaQuente} />
+                    <DashboardCard
+                        tipo="agua_quente"
+                        leitura={leituraAguaQuente}
+                        consumoDelta={leituraAguaQuente ? consumoDeltaMap.get(getConsumoDeltaKey('agua_quente', leituraAguaQuente.mesReferencia)) : null}
+                    />
                 )}
                 {tiposPermitidos.includes('gas') && (
-                    <DashboardCard tipo="gas" leitura={leituraGas} />
+                    <DashboardCard
+                        tipo="gas"
+                        leitura={leituraGas}
+                        consumoDelta={leituraGas ? consumoDeltaMap.get(getConsumoDeltaKey('gas', leituraGas.mesReferencia)) : null}
+                    />
                 )}
             </div>
 
@@ -166,4 +191,3 @@ export default async function AppDashboard() {
         </div>
     );
 }
-

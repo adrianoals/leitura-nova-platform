@@ -27,6 +27,9 @@ export default function ConsumoChart({ leiturasAgua, leiturasGas, mostrarGas }: 
         .sort()
         .slice(-6);
 
+    let prevAguaMedicao: number | null = null;
+    let prevGasMedicao: number | null = null;
+
     const chartData = meses.map(mes => {
         const aguaMes = leiturasAgua.filter((l) => l.mesReferencia === mes);
         const gasMes = leiturasGas.filter((l) => l.mesReferencia === mes);
@@ -41,10 +44,17 @@ export default function ConsumoChart({ leiturasAgua, leiturasGas, mostrarGas }: 
             valor: gasMes.reduce((sum, leitura) => sum + Number(leitura.valor), 0),
         };
 
+        const consumoAgua = prevAguaMedicao === null ? null : agua.medicao - prevAguaMedicao;
+        const consumoGas = prevGasMedicao === null ? null : gas.medicao - prevGasMedicao;
+        prevAguaMedicao = agua.medicao;
+        prevGasMedicao = gas.medicao;
+
         return {
             mes: formatMes(mes),
-            agua: agua.medicao,
-            gas: gas.medicao,
+            medicaoAgua: agua.medicao,
+            medicaoGas: gas.medicao,
+            consumoAgua,
+            consumoGas,
             valorAgua: agua.valor,
             valorGas: gas.valor,
         };
@@ -54,8 +64,8 @@ export default function ConsumoChart({ leiturasAgua, leiturasGas, mostrarGas }: 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h3 className="text-lg font-semibold text-slate-900">Consumo Mensal</h3>
-                    <p className="text-sm text-slate-500">Últimos 6 meses (m³)</p>
+                    <h3 className="text-lg font-semibold text-slate-900">Medicao e Consumo</h3>
+                    <p className="text-sm text-slate-500">Barras: medicao | Linhas: consumo (delta)</p>
                 </div>
             </div>
 
@@ -74,25 +84,48 @@ export default function ConsumoChart({ leiturasAgua, leiturasGas, mostrarGas }: 
                             }}
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             formatter={(value: any, name: any) => {
-                                const label = name === 'agua' ? 'Água' : 'Gás';
-                                return [`${value} m3`, label];
+                                const labels: Record<string, string> = {
+                                    medicaoAgua: 'Medicao Agua',
+                                    medicaoGas: 'Medicao Gas',
+                                    consumoAgua: 'Consumo Agua',
+                                    consumoGas: 'Consumo Gas',
+                                };
+                                const display = value === null || value === undefined ? '-' : `${value} m3`;
+                                return [display, labels[name] || String(name)];
                             }}
                         />
                         <Legend
-                            formatter={(value: string) => (value === 'agua' ? 'Água' : 'Gás')}
+                            formatter={(value: string) => {
+                                const labels: Record<string, string> = {
+                                    medicaoAgua: 'Medicao Agua',
+                                    medicaoGas: 'Medicao Gas',
+                                    consumoAgua: 'Consumo Agua',
+                                    consumoGas: 'Consumo Gas',
+                                };
+                                return labels[value] || value;
+                            }}
                             iconType="circle"
                         />
-                        <Bar dataKey="agua" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={mostrarGas ? 20 : 32} />
+                        <Bar dataKey="medicaoAgua" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={mostrarGas ? 20 : 32} />
                         {mostrarGas && (
-                            <Bar dataKey="gas" fill="#f97316" radius={[6, 6, 0, 0]} barSize={20} />
+                            <Bar dataKey="medicaoGas" fill="#f97316" radius={[6, 6, 0, 0]} barSize={20} />
                         )}
                         <Line
-                            dataKey="agua"
+                            dataKey="consumoAgua"
                             stroke="#1d4ed8"
                             strokeWidth={2}
                             dot={{ fill: '#1d4ed8', r: 4 }}
                             type="monotone"
                         />
+                        {mostrarGas && (
+                            <Line
+                                dataKey="consumoGas"
+                                stroke="#c2410c"
+                                strokeWidth={2}
+                                dot={{ fill: '#c2410c', r: 4 }}
+                                type="monotone"
+                            />
+                        )}
                     </ComposedChart>
                 </ResponsiveContainer>
             </div>

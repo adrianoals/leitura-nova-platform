@@ -3,11 +3,14 @@ import { redirect } from 'next/navigation';
 import { FaArrowLeft, FaCalendarAlt, FaFire, FaImage, FaTachometerAlt, FaThermometerHalf, FaTint } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import {
+    buildConsumoDeltaMap,
+    formatMedicao,
     formatData,
     formatMes,
     formatTipo,
     formatUnidade,
     formatValor,
+    getConsumoDeltaKey,
     getMesLimite12Meses,
     getMoradorContextByAuthUserId,
     isMesValido,
@@ -24,6 +27,12 @@ type LeituraDetalheRow = {
     medicao: number;
     valor: number;
     fotos_leitura: { storage_path: string }[] | null;
+};
+
+type LeituraHistoricoDeltaRow = {
+    tipo: TipoLeitura;
+    mes_referencia: string;
+    medicao: number;
 };
 
 function getTipoIcon(tipo: TipoLeitura) {
@@ -102,6 +111,26 @@ export default async function LeituraMesPage({ params }: { params: Params }) {
         .order('tipo', { ascending: true });
 
     const leituras = (leiturasRaw || []) as unknown as LeituraDetalheRow[];
+    const tiposDoMes = Array.from(new Set(leituras.map((leitura) => leitura.tipo)));
+
+    const { data: historicoDeltaRaw } = tiposDoMes.length > 0
+        ? await supabase
+            .from('leituras_mensais')
+            .select('tipo, mes_referencia, medicao')
+            .eq('unidade_id', context.unidadeId)
+            .in('tipo', tiposDoMes)
+            .gte('mes_referencia', getMesLimite12Meses())
+            .lte('mes_referencia', mes)
+            .order('mes_referencia', { ascending: true })
+        : { data: [] as LeituraHistoricoDeltaRow[] };
+
+    const consumoDeltaMap = buildConsumoDeltaMap(
+        ((historicoDeltaRaw || []) as unknown as LeituraHistoricoDeltaRow[]).map((item) => ({
+            tipo: item.tipo,
+            mesReferencia: item.mes_referencia,
+            medicao: Number(item.medicao),
+        }))
+    );
     const paths = leituras.flatMap((l) => (l.fotos_leitura || []).map((f) => f.storage_path));
     const signedUrlByPath = new Map<string, string>();
 
@@ -138,6 +167,7 @@ export default async function LeituraMesPage({ params }: { params: Params }) {
                 leituras.map((leitura) => {
                     const Icon = getTipoIcon(leitura.tipo);
                     const fotos = leitura.fotos_leitura || [];
+                    const consumoDelta = consumoDeltaMap.get(getConsumoDeltaKey(leitura.tipo, leitura.mes_referencia));
 
                     return (
                         <div key={leitura.id} className={`rounded-2xl border-2 ${getTipoCardClass(leitura.tipo)} bg-white p-6 shadow-sm`}>
@@ -148,7 +178,7 @@ export default async function LeituraMesPage({ params }: { params: Params }) {
                                 <h2 className="text-xl font-bold text-slate-900">{formatTipo(leitura.tipo)}</h2>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
                                 <div className="flex items-start gap-3">
                                     <FaCalendarAlt className="h-5 w-5 text-slate-400 mt-0.5" />
                                     <div>
@@ -160,7 +190,16 @@ export default async function LeituraMesPage({ params }: { params: Params }) {
                                     <FaTachometerAlt className="h-5 w-5 text-slate-400 mt-0.5" />
                                     <div>
                                         <p className="text-xs text-slate-500">Medicao</p>
-                                        <p className="text-base font-semibold text-slate-900">{Number(leitura.medicao)} m3</p>
+                                        <p className="text-base font-semibold text-slate-900">{formatMedicao(Number(leitura.medicao))} m3</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-3">
+                                    <FaTachometerAlt className="h-5 w-5 text-slate-400 mt-0.5" />
+                                    <div>
+                                        <p className="text-xs text-slate-500">Consumo (delta)</p>
+                                        <p className="text-base font-semibold text-slate-900">
+                                            {consumoDelta === null || consumoDelta === undefined ? '-' : `${formatMedicao(consumoDelta)} m3`}
+                                        </p>
                                     </div>
                                 </div>
                                 <div>
@@ -203,4 +242,3 @@ export default async function LeituraMesPage({ params }: { params: Params }) {
         </div>
     );
 }
-
