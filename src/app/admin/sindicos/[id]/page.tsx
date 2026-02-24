@@ -9,7 +9,7 @@ import { firstOfRelation } from '@/lib/relations';
 import { updateSindico } from '@/actions/sindicoActions';
 
 type Params = Promise<{ id: string }>;
-type SearchParams = Promise<{ saved?: string; deleted?: string; error?: string }>;
+type SearchParams = Promise<{ saved?: string; deleted?: string; warning?: string; error?: string }>;
 
 type SindicoDetail = {
     id: string;
@@ -86,6 +86,7 @@ export default async function SindicoDetailPage({
     const email = await getAuthEmail(sindico.auth_user_id);
     const saved = query.saved === '1';
     const deleted = query.deleted === '1';
+    const warning = query.warning ? decodeURIComponent(query.warning) : '';
     const error = query.error ? decodeURIComponent(query.error) : '';
 
     return (
@@ -102,6 +103,11 @@ export default async function SindicoDetailPage({
 
             {saved && <ActionToast message="Síndico atualizado com sucesso." />}
             {deleted && <ActionToast message="Síndico excluído com sucesso." />}
+            {warning && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                    {warning}
+                </div>
+            )}
             {error && (
                 <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                     {error}
@@ -172,13 +178,12 @@ export default async function SindicoDetailPage({
                 >
                     <FaSave className="h-4 w-4" /> Salvar Síndico
                 </button>
-
-                <DeleteSindicoButton
-                    sindicoId={sindico.id}
-                    returnPath={`/admin/sindicos/${sindico.id}`}
-                />
             </form>
+
+            <DeleteSindicoButton
+                sindicoId={sindico.id}
+                returnPath="/admin/sindicos"
+            />
         </div>
     );
 }
-

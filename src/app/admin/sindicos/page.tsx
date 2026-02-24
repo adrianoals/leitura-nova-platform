@@ -12,6 +12,7 @@ type SearchParams = Promise<{
     q?: string;
     created?: string;
     deleted?: string;
+    warning?: string;
     error?: string;
 }>;
 
@@ -57,6 +58,7 @@ export default async function SindicosPage({ searchParams }: { searchParams: Sea
     const termoBusca = (params.q || '').trim().toLowerCase();
     const created = params.created === '1';
     const deleted = params.deleted === '1';
+    const warningMessage = params.warning ? decodeURIComponent(params.warning) : '';
     const errorMessage = params.error ? decodeURIComponent(params.error) : '';
 
     const supabase = await createClient();
@@ -133,6 +135,11 @@ export default async function SindicosPage({ searchParams }: { searchParams: Sea
 
             {created && <ActionToast message="Síndico criado com sucesso." />}
             {deleted && <ActionToast message="Síndico excluído com sucesso." />}
+            {warningMessage && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                    {warningMessage}
+                </div>
+            )}
             {errorMessage && (
                 <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                     {errorMessage}
@@ -243,4 +250,3 @@ export default async function SindicosPage({ searchParams }: { searchParams: Sea
         </div>
     );
 }
-

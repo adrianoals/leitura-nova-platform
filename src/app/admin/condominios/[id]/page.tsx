@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { FaArrowLeft, FaDoorOpen, FaTint, FaFire, FaCamera, FaPlus, FaKey } from 'react-icons/fa';
+import { FaArrowLeft, FaDoorOpen, FaTint, FaFire, FaCamera, FaPlus, FaKey, FaUserShield } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import ActionToast from '@/components/admin/ActionToast';
 import { firstOfRelation } from '@/lib/relations';
@@ -91,6 +91,9 @@ export default async function CondominioDetailPage({
                     </Link>
                     <Link href={`/admin/unidades/nova?condominio_id=${cond.id}`} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all">
                         <FaDoorOpen className="h-3 w-3" /> Unidade
+                    </Link>
+                    <Link href={`/admin/sindicos/novo?condominio_id=${cond.id}`} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all">
+                        <FaUserShield className="h-3 w-3" /> Síndico
                     </Link>
                 </div>
             </div>

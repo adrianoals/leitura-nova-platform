@@ -36,6 +36,37 @@ function normalizeAdminPath(path: string | null | undefined, fallback: string) {
     return path.startsWith('/admin') ? path : fallback;
 }
 
+function isAuthDuplicateEmailError(message: string) {
+    const normalized = (message || '').toLowerCase();
+    return (
+        normalized.includes('already') ||
+        normalized.includes('exists') ||
+        normalized.includes('duplicate') ||
+        normalized.includes('registered')
+    );
+}
+
+async function findAuthUserIdByEmail(
+    adminClient: ReturnType<typeof createAdminClient>,
+    email: string
+) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const perPage = 200;
+
+    for (let page = 1; page <= 20; page += 1) {
+        const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage });
+        if (error) break;
+
+        const users = data?.users || [];
+        const match = users.find((user) => (user.email || '').toLowerCase() === normalizedEmail);
+        if (match?.id) return match.id;
+
+        if (users.length < perPage) break;
+    }
+
+    return null;
+}
+
 async function ensureAdmin() {
     const supabase = await createClient();
     const {
@@ -80,30 +111,49 @@ export async function createSindico(formData: FormData) {
         redirect('/admin/sindicos/novo?error=' + encodeMessage('SUPABASE_SERVICE_ROLE_KEY não configurada'));
     }
 
+    const normalizedEmail = parsed.data.email.trim().toLowerCase();
+    let authUserId: string | null = null;
+    let createdAuthInThisRequest = false;
+
     const { data: createdAuth, error: authError } = await adminClient.auth.admin.createUser({
-        email: parsed.data.email,
+        email: normalizedEmail,
         password: parsed.data.senha,
         email_confirm: true,
         user_metadata: { role: 'sindico' },
     });
 
-    if (authError || !createdAuth.user) {
+    if (!authError && createdAuth.user?.id) {
+        authUserId = createdAuth.user.id;
+        createdAuthInThisRequest = true;
+    } else if (authError && isAuthDuplicateEmailError(authError.message)) {
+        const existingAuthUserId = await findAuthUserIdByEmail(adminClient, normalizedEmail);
+        if (!existingAuthUserId) {
+            redirect('/admin/sindicos/novo?error=' + encodeMessage('Email já existe no Auth, mas não foi possível localizar o usuário'));
+        }
+        authUserId = existingAuthUserId;
+    } else {
         redirect('/admin/sindicos/novo?error=' + encodeMessage(authError?.message || 'Não foi possível criar login'));
+    }
+
+    if (!authUserId) {
+        redirect('/admin/sindicos/novo?error=' + encodeMessage('Não foi possível identificar o usuário de login do síndico'));
     }
 
     const { error: insertError } = await supabase
         .from('sindicos')
         .insert({
-            auth_user_id: createdAuth.user.id,
+            auth_user_id: authUserId,
             condominio_id: parsed.data.condominio_id,
             nome: parsed.data.nome || null,
         });
 
     if (insertError) {
-        await adminClient.auth.admin.deleteUser(createdAuth.user.id);
+        if (createdAuthInThisRequest && authUserId) {
+            await adminClient.auth.admin.deleteUser(authUserId);
+        }
         const isDuplicate = insertError.code === '23505' || insertError.message.toLowerCase().includes('duplicate');
         const message = isDuplicate
-            ? 'Síndico já vinculado a este condomínio'
+            ? 'Este síndico já está vinculado a este condomínio'
             : 'Não foi possível vincular o síndico';
         redirect('/admin/sindicos/novo?error=' + encodeMessage(message));
     }
@@ -148,7 +198,7 @@ export async function updateSindico(formData: FormData) {
     }
 
     const senha = (parsed.data.senha || '').trim();
-    const authPayload: { email: string; password?: string } = { email: parsed.data.email };
+    const authPayload: { email: string; password?: string } = { email: parsed.data.email.trim().toLowerCase() };
 
     if (senha) {
         if (senha.length < 6) {
@@ -225,14 +275,16 @@ export async function deleteSindico(formData: FormData) {
         .select('id', { count: 'exact', head: true })
         .eq('auth_user_id', sindico.auth_user_id);
 
+    let warningMessage = '';
+
     if ((remainingLinks || 0) === 0) {
         try {
             const { failedIds } = await deleteAuthUsersByIds([sindico.auth_user_id]);
             if (failedIds.length > 0) {
-                redirect('/admin/sindicos?error=' + encodeMessage('Vínculo removido, mas falhou ao remover login do síndico'));
+                warningMessage = 'Síndico removido, mas o login não pôde ser excluído automaticamente';
             }
         } catch {
-            redirect('/admin/sindicos?error=' + encodeMessage('Vínculo removido, mas SUPABASE_SERVICE_ROLE_KEY não permite remover login'));
+            warningMessage = 'Síndico removido, mas o login não pôde ser excluído automaticamente';
         }
     }
 
@@ -241,7 +293,12 @@ export async function deleteSindico(formData: FormData) {
     revalidatePath('/sindico');
 
     const baseReturn = normalizeAdminPath(parsed.data.return_path, '/admin/sindicos');
-    const separator = baseReturn.includes('?') ? '&' : '?';
-    redirect(`${baseReturn}${separator}deleted=1`);
-}
+    const redirectUrl = new URL(baseReturn, 'http://localhost');
+    redirectUrl.searchParams.set('deleted', '1');
 
+    if (warningMessage) {
+        redirectUrl.searchParams.set('warning', warningMessage);
+    }
+
+    redirect(`${redirectUrl.pathname}?${redirectUrl.searchParams.toString()}`);
+}
