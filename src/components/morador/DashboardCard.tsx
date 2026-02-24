@@ -97,32 +97,28 @@ export default function DashboardCard({ tipo, leitura, consumoDelta, label, icon
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                    <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-1">
+            <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-xs text-slate-500">
                         <FaCalendarAlt className="h-3 w-3" />
                         Data
-                    </div>
-                    <p className="text-sm font-semibold text-slate-900">{formatarData(leitura.dataLeitura)}</p>
+                    </span>
+                    <span className="text-sm font-semibold text-slate-900">{formatarData(leitura.dataLeitura)}</span>
                 </div>
-                <div>
-                    <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-1">
+                <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-xs text-slate-500">
                         <FaTachometerAlt className="h-3 w-3" />
                         Medicao
-                    </div>
-                    <p className="text-sm font-semibold text-slate-900">{formatMedicao(leitura.medicao)} m3</p>
+                    </span>
+                    <span className="text-sm font-semibold text-slate-900">{formatMedicao(leitura.medicao)} m3</span>
                 </div>
-                <div>
-                    <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-1">
-                        Delta
-                    </div>
-                    <p className="text-sm font-semibold text-slate-900">{formatarConsumoDelta(consumoDelta)}</p>
+                <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500">Consumo</span>
+                    <span className="text-sm font-semibold text-slate-900">{formatarConsumoDelta(consumoDelta)}</span>
                 </div>
-                <div>
-                    <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-1">
-                        Valor
-                    </div>
-                    <p className="text-lg font-bold text-slate-900">{formatarValor(leitura.valor)}</p>
+                <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+                    <span className="text-xs text-slate-500">Valor</span>
+                    <span className="text-lg font-bold text-slate-900">{formatarValor(leitura.valor)}</span>
                 </div>
             </div>
         </div>
