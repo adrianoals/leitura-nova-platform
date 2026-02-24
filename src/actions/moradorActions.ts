@@ -6,10 +6,10 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { resolveMoradorPortalContext } from '@/lib/adminPreview';
 import {
     getDataHojeIso,
     getMesAtual,
-    getMoradorContextByAuthUserId,
     getTiposPermitidos,
     type TipoLeitura,
 } from '@/lib/morador';
@@ -39,9 +39,15 @@ async function ensureMorador() {
         redirect('/login');
     }
 
-    const context = await getMoradorContextByAuthUserId(supabase as never, user.id);
+    const resolvedContext = await resolveMoradorPortalContext(supabase as never, user.id);
+    const context = resolvedContext?.context || null;
+
     if (!context) {
         redirect('/app');
+    }
+
+    if (resolvedContext?.mode === 'admin_preview') {
+        redirect('/app/enviar-leitura?error=' + encodeMessage('Modo visualização ativo. Envio de leitura está bloqueado.'));
     }
 
     return { supabase, user, context };

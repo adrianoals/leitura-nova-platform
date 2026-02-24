@@ -16,7 +16,7 @@ const enviarLeituraItem = { label: 'Enviar Leitura', href: '/app/enviar-leitura'
 const suporteItem = { label: 'Suporte', href: '/app/suporte', icon: FaLifeRing };
 const senhaItem = { label: 'Trocar Senha', href: '/app/senha', icon: FaKey };
 
-export default function MoradorSidebar() {
+export default function MoradorSidebar({ isPreview = false }: { isPreview?: boolean }) {
     const pathname = usePathname();
     const router = useRouter();
     const [mobileOpen, setMobileOpen] = useState(false);
@@ -24,6 +24,12 @@ export default function MoradorSidebar() {
     const [showEnviarLeitura, setShowEnviarLeitura] = useState(false);
 
     useEffect(() => {
+        if (isPreview) {
+            setShowEnviarLeitura(false);
+            setLoading(false);
+            return;
+        }
+
         async function checkPermissions() {
             try {
                 const supabase = createClient();
@@ -63,15 +69,17 @@ export default function MoradorSidebar() {
         }
 
         checkPermissions();
-    }, []); // Removed supabase from default dep array to avoid infinite loops if client recreates
+    }, [isPreview]); // Removed supabase from default dep array to avoid infinite loops if client recreates
 
     const getNavItems = () => {
         const items = [...baseNavItems];
-        if (showEnviarLeitura) {
+        if (!isPreview && showEnviarLeitura) {
             items.push(enviarLeituraItem);
         }
         items.push(suporteItem);
-        items.push(senhaItem);
+        if (!isPreview) {
+            items.push(senhaItem);
+        }
         return items;
     };
 

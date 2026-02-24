@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { FaArrowLeft, FaCalendarAlt, FaFire, FaImage, FaTachometerAlt, FaThermometerHalf, FaTint } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
+import { resolveMoradorPortalContext } from '@/lib/adminPreview';
 import {
     formatMedicao,
     formatData,
@@ -10,7 +11,6 @@ import {
     formatUnidade,
     formatValor,
     getMesLimite12Meses,
-    getMoradorContextByAuthUserId,
     isMesValido,
     type TipoLeitura,
 } from '@/lib/morador';
@@ -64,7 +64,8 @@ export default async function LeituraMesPage({ params }: { params: Params }) {
         redirect('/login');
     }
 
-    const context = await getMoradorContextByAuthUserId(supabase as never, user.id);
+    const resolvedContext = await resolveMoradorPortalContext(supabase as never, user.id);
+    const context = resolvedContext?.context || null;
     if (!context) {
         redirect('/app');
     }

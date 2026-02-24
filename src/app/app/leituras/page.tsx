@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { FaArrowLeft, FaCalendarAlt, FaChevronRight, FaFire, FaTint, FaThermometerHalf } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
+import { resolveMoradorPortalContext } from '@/lib/adminPreview';
 import {
     formatData,
     formatMedicao,
@@ -9,7 +10,6 @@ import {
     formatTipo,
     formatValor,
     getMesLimite12Meses,
-    getMoradorContextByAuthUserId,
     type TipoLeitura,
 } from '@/lib/morador';
 
@@ -46,7 +46,8 @@ export default async function LeiturasPage() {
         redirect('/login');
     }
 
-    const context = await getMoradorContextByAuthUserId(supabase as never, user.id);
+    const resolvedContext = await resolveMoradorPortalContext(supabase as never, user.id);
+    const context = resolvedContext?.context || null;
     if (!context) {
         return (
             <div className="max-w-3xl mx-auto space-y-6">

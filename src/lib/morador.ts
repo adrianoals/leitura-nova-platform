@@ -26,7 +26,7 @@ type MoradorRaw = {
 };
 
 export type MoradorContext = {
-    moradorId: string;
+    moradorId: string | null;
     moradorNome: string | null;
     moradorEmail: string | null;
     unidadeId: string;
@@ -166,6 +166,74 @@ export async function getMoradorContextByAuthUserId(
         unidadeId: unidade.id,
         bloco: unidade.bloco,
         apartamento: unidade.apartamento,
+        condominioId: condominio.id,
+        condominioNome: condominio.nome,
+        temAgua: condominio.tem_agua,
+        temAguaQuente: condominio.tem_agua_quente,
+        temGas: condominio.tem_gas,
+        envioLeituraMoradorHabilitado: condominio.envio_leitura_morador_habilitado,
+    };
+
+    return context;
+}
+
+type UnidadeComMoradorRaw = {
+    id: string;
+    bloco: string | null;
+    apartamento: string | null;
+    condominio: CondominioRaw | CondominioRaw[] | null;
+    moradores: { id: string; nome: string | null; email: string | null } | { id: string; nome: string | null; email: string | null }[] | null;
+};
+
+export async function getMoradorContextByUnidadeId(
+    supabase: {
+        from: (table: string) => {
+            select: (query: string) => {
+                eq: (column: string, value: string) => {
+                    maybeSingle: () => Promise<{ data: UnidadeComMoradorRaw | null }>;
+                };
+            };
+        };
+    },
+    unidadeId: string
+) {
+    const { data: unidadeRaw } = await supabase
+        .from('unidades')
+        .select(`
+            id,
+            bloco,
+            apartamento,
+            condominio:condominios(
+                id,
+                nome,
+                tem_agua,
+                tem_agua_quente,
+                tem_gas,
+                envio_leitura_morador_habilitado
+            ),
+            moradores(
+                id,
+                nome,
+                email
+            )
+        `)
+        .eq('id', unidadeId)
+        .maybeSingle();
+
+    if (!unidadeRaw) return null;
+
+    const condominio = firstOfRelation(unidadeRaw.condominio);
+    if (!condominio) return null;
+
+    const morador = firstOfRelation(unidadeRaw.moradores);
+
+    const context: MoradorContext = {
+        moradorId: morador?.id || null,
+        moradorNome: morador?.nome || null,
+        moradorEmail: morador?.email || null,
+        unidadeId: unidadeRaw.id,
+        bloco: unidadeRaw.bloco,
+        apartamento: unidadeRaw.apartamento,
         condominioId: condominio.id,
         condominioNome: condominio.nome,
         temAgua: condominio.tem_agua,

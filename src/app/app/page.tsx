@@ -4,12 +4,12 @@ import { FaCamera, FaHistory } from 'react-icons/fa';
 import DashboardCard from '@/components/morador/DashboardCard';
 import ConsumoChart from '@/components/morador/ConsumoChart';
 import { createClient } from '@/lib/supabase/server';
+import { resolveMoradorPortalContext } from '@/lib/adminPreview';
 import {
     formatMes,
     formatUnidade,
     getMesAtual,
     getMesLimite12Meses,
-    getMoradorContextByAuthUserId,
     getTiposPermitidos,
     type TipoLeitura,
 } from '@/lib/morador';
@@ -54,7 +54,8 @@ export default async function AppDashboard() {
         redirect('/login');
     }
 
-    const context = await getMoradorContextByAuthUserId(supabase as never, user.id);
+    const resolvedContext = await resolveMoradorPortalContext(supabase as never, user.id);
+    const context = resolvedContext?.context || null;
     if (!context) {
         return (
             <div className="flex min-h-[60vh] flex-col items-center justify-center text-center p-4">

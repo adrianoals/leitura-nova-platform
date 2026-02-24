@@ -1,11 +1,13 @@
-import Link from 'next/link';
 import { FaEye, FaBuilding, FaDoorOpen, FaExternalLinkAlt } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
+import { startAdminMoradorPreview, stopAdminMoradorPreview } from '@/actions/adminPreviewActions';
+import { getAdminMoradorPreviewPayload } from '@/lib/adminPreview';
 import { firstOfRelation } from '@/lib/relations';
 
 type SearchParams = Promise<{
     condominio?: string;
     unidade?: string;
+    error?: string;
 }>;
 
 type CondominioRow = {
@@ -25,33 +27,51 @@ export default async function VisualizarComoPage({ searchParams }: { searchParam
     const params = await searchParams;
     const condominioId = params.condominio || '';
     const unidadeId = params.unidade || '';
+    const errorMessage = params.error ? decodeURIComponent(params.error) : '';
     const supabase = await createClient();
+    const previewPayload = await getAdminMoradorPreviewPayload();
 
     const { data: condominios } = await supabase
         .from('condominios')
         .select('id, nome')
         .order('nome', { ascending: true });
 
-    let unidadesQuery = supabase
-        .from('unidades')
-        .select(`
-            id,
-            bloco,
-            apartamento,
-            condominio_id,
-            moradores (
-                nome
-            )
-        `)
-        .order('apartamento', { ascending: true });
-
-    if (condominioId) {
-        unidadesQuery = unidadesQuery.eq('condominio_id', condominioId);
-    }
-
-    const { data: unidades } = await unidadesQuery;
+    const { data: unidades } = condominioId
+        ? await supabase
+            .from('unidades')
+            .select(`
+                id,
+                bloco,
+                apartamento,
+                condominio_id,
+                moradores (
+                    nome
+                )
+            `)
+            .eq('condominio_id', condominioId)
+            .order('apartamento', { ascending: true })
+        : { data: [] as UnidadeRow[] };
     const unidadeSelecionada = ((unidades || []) as UnidadeRow[]).find((u) => u.id === unidadeId);
     const condominioSelecionado = ((condominios || []) as CondominioRow[]).find((c) => c.id === condominioId);
+
+    const { data: previewUnidadeRaw } = previewPayload
+        ? await supabase
+            .from('unidades')
+            .select('id, bloco, apartamento, condominio:condominios(nome)')
+            .eq('id', previewPayload.unidadeId)
+            .maybeSingle()
+        : { data: null };
+
+    const previewUnidade = previewUnidadeRaw as
+        | ({
+            id: string;
+            bloco: string;
+            apartamento: string;
+            condominio: { nome: string } | { nome: string }[] | null;
+        })
+        | null;
+
+    const previewCondominioNome = previewUnidade ? (firstOfRelation(previewUnidade.condominio)?.nome || 'Condomínio') : '';
 
     return (
         <div className="max-w-lg mx-auto space-y-6">
@@ -59,6 +79,30 @@ export default async function VisualizarComoPage({ searchParams }: { searchParam
                 <h1 className="text-2xl font-bold text-slate-900">Visualizar como Morador</h1>
                 <p className="text-slate-500 text-sm">Pré-visualização da unidade no portal</p>
             </div>
+
+            {errorMessage && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                    {errorMessage}
+                </div>
+            )}
+
+            {previewUnidade && (
+                <div className="rounded-xl border border-green-200 bg-green-50 p-4 space-y-3">
+                    <p className="text-sm font-semibold text-green-900">Visualização ativa no portal do morador</p>
+                    <p className="text-sm text-green-800">
+                        {previewCondominioNome} - {previewUnidade.bloco} — {previewUnidade.apartamento}
+                    </p>
+                    <form action={stopAdminMoradorPreview}>
+                        <input type="hidden" name="return_path" value="/admin/visualizar" />
+                        <button
+                            type="submit"
+                            className="rounded-lg border border-green-300 bg-white px-3 py-2 text-sm font-medium text-green-800 hover:bg-green-100 transition-colors"
+                        >
+                            Encerrar visualização
+                        </button>
+                    </form>
+                </div>
+            )}
 
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
                 <form method="GET" className="space-y-5">
@@ -118,20 +162,25 @@ export default async function VisualizarComoPage({ searchParams }: { searchParam
                     </div>
                 )}
 
-                <Link
-                    href={unidadeId ? '/app' : '#'}
-                    className={`w-full rounded-xl py-3.5 font-semibold shadow-lg transition-all duration-200 flex items-center justify-center gap-2 ${
-                        unidadeId
-                            ? 'bg-yellow-500 text-slate-900 shadow-yellow-500/25 hover:bg-yellow-400 hover:scale-[1.02]'
-                            : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
-                    }`}
-                >
-                    <FaExternalLinkAlt className="h-4 w-4" />
-                    Abrir como Morador
-                </Link>
+                <form action={startAdminMoradorPreview}>
+                    <input type="hidden" name="condominio_id" value={condominioId} />
+                    <input type="hidden" name="unidade_id" value={unidadeId} />
+                    <button
+                        type="submit"
+                        disabled={!unidadeId}
+                        className={`w-full rounded-xl py-3.5 font-semibold shadow-lg transition-all duration-200 flex items-center justify-center gap-2 ${
+                            unidadeId
+                                ? 'bg-yellow-500 text-slate-900 shadow-yellow-500/25 hover:bg-yellow-400 hover:scale-[1.02]'
+                                : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                        }`}
+                    >
+                        <FaExternalLinkAlt className="h-4 w-4" />
+                        Entrar como Morador
+                    </button>
+                </form>
 
                 <p className="text-xs text-slate-400 text-center">
-                    Fluxo de impersonação real pode ser implementado depois. Aqui é uma pré-visualização guiada.
+                    O acesso será aberto no portal do morador em modo de visualização controlado pelo admin.
                 </p>
             </div>
         </div>
