@@ -6,8 +6,8 @@ import { FaWhatsapp } from 'react-icons/fa';
 export default function WhatsAppButton() {
     const pathname = usePathname();
 
-    // Não exibir nos painéis do morador e admin
-    if (pathname.startsWith('/app') || pathname.startsWith('/admin')) {
+    // Não exibir nos painéis do morador, admin, síndico e páginas de login
+    if (pathname.startsWith('/app') || pathname.startsWith('/admin') || pathname.startsWith('/sindico') || pathname.startsWith('/login')) {
         return null;
     }
 
