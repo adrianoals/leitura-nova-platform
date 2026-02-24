@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { FaChartLine, FaHistory, FaKey, FaSignOutAlt, FaBars, FaTimes, FaTint, FaCamera, FaSpinner } from 'react-icons/fa';
+import { FaChartLine, FaHistory, FaKey, FaSignOutAlt, FaBars, FaTimes, FaTint, FaCamera, FaSpinner, FaLifeRing } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/client';
 import { getMesAtual } from '@/lib/morador';
 
@@ -13,6 +13,7 @@ const baseNavItems = [
 ];
 
 const enviarLeituraItem = { label: 'Enviar Leitura', href: '/app/enviar-leitura', icon: FaCamera };
+const suporteItem = { label: 'Suporte', href: '/app/suporte', icon: FaLifeRing };
 const senhaItem = { label: 'Trocar Senha', href: '/app/senha', icon: FaKey };
 
 export default function MoradorSidebar() {
@@ -69,6 +70,7 @@ export default function MoradorSidebar() {
         if (showEnviarLeitura) {
             items.push(enviarLeituraItem);
         }
+        items.push(suporteItem);
         items.push(senhaItem);
         return items;
     };

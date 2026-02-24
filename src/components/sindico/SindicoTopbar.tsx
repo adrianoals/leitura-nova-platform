@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 
 const navItems = [
     { label: 'Dashboard', href: '/sindico' },
+    { label: 'Suporte', href: '/sindico/suporte' },
 ];
 
 export default function SindicoTopbar() {
@@ -64,4 +65,3 @@ export default function SindicoTopbar() {
         </header>
     );
 }
-
