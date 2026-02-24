@@ -112,8 +112,8 @@ export async function deleteCondominio(condominioId: string) {
 
     const unidadeIds = await getAllUnidadeIdsByCondominio(supabase, condominioId);
 
+    const moradoresAuthIds: string[] = [];
     if (unidadeIds.length > 0) {
-        const moradoresAuthIds: string[] = [];
         const chunkSize = 500;
 
         for (let i = 0; i < unidadeIds.length; i += chunkSize) {
@@ -129,9 +129,38 @@ export async function deleteCondominio(condominioId: string) {
                     .filter((id): id is string => Boolean(id))
             );
         }
+    }
 
+    const { data: sindicosRaw } = await supabase
+        .from('sindicos')
+        .select('auth_user_id')
+        .eq('condominio_id', condominioId);
+
+    const removableSindicoAuthIds: string[] = [];
+    const sindicoAuthIds = Array.from(
+        new Set(
+            (sindicosRaw || [])
+                .map((s) => s.auth_user_id)
+                .filter((id): id is string => Boolean(id))
+        )
+    );
+
+    for (const authUserId of sindicoAuthIds) {
+        const { count } = await supabase
+            .from('sindicos')
+            .select('id', { count: 'exact', head: true })
+            .eq('auth_user_id', authUserId)
+            .neq('condominio_id', condominioId);
+
+        if ((count || 0) === 0) {
+            removableSindicoAuthIds.push(authUserId);
+        }
+    }
+
+    const authIdsToDelete = [...moradoresAuthIds, ...removableSindicoAuthIds];
+    if (authIdsToDelete.length > 0) {
         try {
-            const { failedIds } = await deleteAuthUsersByIds(moradoresAuthIds);
+            const { failedIds } = await deleteAuthUsersByIds(authIdsToDelete);
             if (failedIds.length > 0) {
                 redirect('/admin/condominios?error=' + encodeMessage('Não foi possível remover todos os usuários de login vinculados'));
             }
@@ -153,6 +182,8 @@ export async function deleteCondominio(condominioId: string) {
     revalidatePath('/admin/condominios');
     revalidatePath('/admin/unidades');
     revalidatePath('/admin/moradores');
+    revalidatePath('/admin/sindicos');
     revalidatePath('/admin/leituras');
+    revalidatePath('/sindico');
     redirect('/admin/condominios?deleted=1');
 }

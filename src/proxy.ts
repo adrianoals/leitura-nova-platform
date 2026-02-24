@@ -7,10 +7,10 @@ export async function proxy(request: NextRequest) {
 
     const path = request.nextUrl.pathname
 
-    // Proteção das rotas /app (Morador) e /admin (Administrador)
-    if ((path.startsWith('/app') || path.startsWith('/admin')) && !user) {
+    // Proteção das rotas /app (Morador), /admin (Administrador) e /sindico
+    if ((path.startsWith('/app') || path.startsWith('/admin') || path.startsWith('/sindico')) && !user) {
         const url = request.nextUrl.clone()
-        url.pathname = '/login'
+        url.pathname = path.startsWith('/sindico') ? '/login/sindico' : '/login'
         return NextResponse.redirect(url)
     }
 
@@ -21,5 +21,6 @@ export const config = {
     matcher: [
         '/app/:path*',
         '/admin/:path*',
+        '/sindico/:path*',
     ],
 }

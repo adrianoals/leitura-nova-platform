@@ -79,7 +79,7 @@ export default function LoginForm({
         setIsLoading(true);
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
+            const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
@@ -106,6 +106,27 @@ export default function LoginForm({
                 if (isAdmin) {
                     router.push('/admin');
                 } else if (isSindico) {
+                    const authUserId = data.user?.id;
+                    if (!authUserId) {
+                        await supabase.auth.signOut();
+                        setErrors({ form: 'Não foi possível validar seu acesso de síndico.' });
+                        setIsLoading(false);
+                        return;
+                    }
+
+                    const { data: sindicoRows } = await supabase
+                        .from('sindicos')
+                        .select('id')
+                        .eq('auth_user_id', authUserId)
+                        .limit(1);
+
+                    if (!sindicoRows || sindicoRows.length === 0) {
+                        await supabase.auth.signOut();
+                        setErrors({ form: 'Seu usuário não possui permissão de síndico.' });
+                        setIsLoading(false);
+                        return;
+                    }
+
                     router.push('/sindico');
                 } else {
                     router.push('/app');
