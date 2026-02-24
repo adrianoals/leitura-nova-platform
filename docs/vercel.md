@@ -44,3 +44,5 @@ git config user.email "novo-email@exemplo.com"
 git config --global user.email
 git config user.email
 ```
+
+claude --resume 67f45f62-2986-425a-a827-2ac48b961157
