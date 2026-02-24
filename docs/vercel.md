@@ -32,12 +32,15 @@ vercel env add SUPABASE_SERVICE_ROLE_KEY
 vercel --prod
 ```
 
-<!-- Global -->
- git config --global user.email "novo-email@exemplo.com"
-<!-- Só desse projeto -->
- git config user.email "novo-email@exemplo.com" 
+## Git config útil
 
-<!-- Global -->
+```bash
+# Global
+git config --global user.email "novo-email@exemplo.com"
+# Só desse projeto
+git config user.email "novo-email@exemplo.com"
+
+# Verificar
 git config --global user.email
-<!-- Só desse projeto -->
 git config user.email
+```
