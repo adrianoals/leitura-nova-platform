@@ -4,12 +4,23 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { FaSignOutAlt, FaUserCircle, FaSpinner } from 'react-icons/fa';
+import { firstOfRelation } from '@/lib/relations';
 
 export default function MoradorHeader() {
     const router = useRouter();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [morador, setMorador] = useState<any>(null);
+    const [morador, setMorador] = useState<{
+        nome: string | null;
+        unidade: {
+            bloco: string | null;
+            apartamento: string | null;
+            condominio: { nome: string } | { nome: string }[] | null;
+        } | {
+            bloco: string | null;
+            apartamento: string | null;
+            condominio: { nome: string } | { nome: string }[] | null;
+        }[] | null;
+    } | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -57,14 +68,15 @@ export default function MoradorHeader() {
     // Fallback if data loading failed or no user
     if (!morador) return null;
 
-    const { unidade } = morador;
+    const unidade = firstOfRelation(morador.unidade);
+    const condominio = firstOfRelation(unidade?.condominio);
 
     return (
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white/80 backdrop-blur-lg px-4 sm:px-6 lg:px-8">
             {/* Unit info */}
             <div className="flex items-center gap-3 pl-12 lg:pl-0">
                 <div>
-                    <p className="text-sm font-semibold text-slate-900">{unidade?.condominio?.nome}</p>
+                    <p className="text-sm font-semibold text-slate-900">{condominio?.nome}</p>
                     <p className="text-xs text-slate-500">{unidade?.bloco} • {unidade?.apartamento}</p>
                 </div>
             </div>

@@ -2,7 +2,6 @@
 
 import {
     ResponsiveContainer,
-    BarChart,
     Bar,
     XAxis,
     YAxis,
@@ -13,7 +12,7 @@ import {
     ComposedChart,
 } from 'recharts';
 import { LeituraMensal } from '@/types';
-import { formatarMes, formatarValor } from '@/mocks/moradorData';
+import { formatMes, formatValor } from '@/lib/morador';
 
 interface ConsumoChartProps {
     leiturasAgua: LeituraMensal[];
@@ -22,18 +21,32 @@ interface ConsumoChartProps {
 }
 
 export default function ConsumoChart({ leiturasAgua, leiturasGas, mostrarGas }: ConsumoChartProps) {
-    // Build chart data from last 6 months (oldest first)
-    const meses = [...new Set(leiturasAgua.map(l => l.mesReferencia))].sort().slice(-6);
+    const meses = Array.from(
+        new Set([...leiturasAgua.map((l) => l.mesReferencia), ...leiturasGas.map((l) => l.mesReferencia)])
+    )
+        .sort()
+        .slice(-6);
 
     const chartData = meses.map(mes => {
-        const agua = leiturasAgua.find(l => l.mesReferencia === mes);
-        const gas = leiturasGas.find(l => l.mesReferencia === mes);
+        const aguaMes = leiturasAgua.filter((l) => l.mesReferencia === mes);
+        const gasMes = leiturasGas.filter((l) => l.mesReferencia === mes);
+
+        const agua = {
+            medicao: aguaMes.reduce((sum, leitura) => sum + Number(leitura.medicao), 0),
+            valor: aguaMes.reduce((sum, leitura) => sum + Number(leitura.valor), 0),
+        };
+
+        const gas = {
+            medicao: gasMes.reduce((sum, leitura) => sum + Number(leitura.medicao), 0),
+            valor: gasMes.reduce((sum, leitura) => sum + Number(leitura.valor), 0),
+        };
+
         return {
-            mes: formatarMes(mes),
-            agua: agua?.medicao ?? 0,
-            gas: gas?.medicao ?? 0,
-            valorAgua: agua?.valor ?? 0,
-            valorGas: gas?.valor ?? 0,
+            mes: formatMes(mes),
+            agua: agua.medicao,
+            gas: gas.medicao,
+            valorAgua: agua.valor,
+            valorGas: gas.valor,
         };
     });
 
@@ -62,7 +75,7 @@ export default function ConsumoChart({ leiturasAgua, leiturasGas, mostrarGas }: 
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             formatter={(value: any, name: any) => {
                                 const label = name === 'agua' ? 'Água' : 'Gás';
-                                return [`${value} m³`, label];
+                                return [`${value} m3`, label];
                             }}
                         />
                         <Legend
@@ -91,7 +104,7 @@ export default function ConsumoChart({ leiturasAgua, leiturasGas, mostrarGas }: 
                     <div>
                         <p className="text-xs text-slate-500">Total Água (6 meses)</p>
                         <p className="text-sm font-semibold text-slate-900">
-                            {formatarValor(chartData.reduce((sum, d) => sum + d.valorAgua, 0))}
+                            {formatValor(chartData.reduce((sum, d) => sum + d.valorAgua, 0))}
                         </p>
                     </div>
                 </div>
@@ -101,7 +114,7 @@ export default function ConsumoChart({ leiturasAgua, leiturasGas, mostrarGas }: 
                         <div>
                             <p className="text-xs text-slate-500">Total Gás (6 meses)</p>
                             <p className="text-sm font-semibold text-slate-900">
-                                {formatarValor(chartData.reduce((sum, d) => sum + d.valorGas, 0))}
+                                {formatValor(chartData.reduce((sum, d) => sum + d.valorGas, 0))}
                             </p>
                         </div>
                     </div>

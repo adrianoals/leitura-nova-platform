@@ -1,80 +1,128 @@
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
-import { FaArrowLeft, FaCamera, FaTachometerAlt, FaTint, FaFire, FaCloudUploadAlt, FaCheck, FaTrash } from 'react-icons/fa';
-import { mockMorador } from '@/mocks/moradorData';
+import { redirect } from 'next/navigation';
+import { FaArrowLeft, FaCamera, FaCheckCircle, FaCloudUploadAlt, FaFire, FaInfoCircle, FaTint, FaThermometerHalf } from 'react-icons/fa';
+import { createClient } from '@/lib/supabase/server';
+import { enviarLeituraMorador } from '@/actions/moradorActions';
+import {
+    formatMes,
+    formatTipo,
+    getMesAtual,
+    getMoradorContextByAuthUserId,
+    getTiposPermitidos,
+    type TipoLeitura,
+} from '@/lib/morador';
 
-export default function EnviarLeituraPage() {
-    const unidade = mockMorador.unidade;
-    const condominio = unidade?.condominio;
+type SearchParams = Promise<{ success?: string; error?: string }>;
 
-    if (!unidade || !condominio) {
+type LeituraTipoRow = {
+    tipo: TipoLeitura;
+};
+
+function getTipoIcon(tipo: TipoLeitura) {
+    if (tipo === 'gas') return FaFire;
+    if (tipo === 'agua_quente') return FaThermometerHalf;
+    return FaTint;
+}
+
+export default async function EnviarLeituraPage({ searchParams }: { searchParams: SearchParams }) {
+    const params = await searchParams;
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        redirect('/login');
+    }
+
+    const context = await getMoradorContextByAuthUserId(supabase as never, user.id);
+    if (!context) {
         return (
             <div className="max-w-lg mx-auto">
                 <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-                    <p className="text-slate-500">Dados da unidade indisponíveis.</p>
+                    <p className="text-slate-500">Sua conta ainda não está vinculada a uma unidade.</p>
                     <Link href="/app" className="text-vscode-blue mt-2 inline-block">Voltar</Link>
                 </div>
             </div>
         );
     }
 
-    const [tipo, setTipo] = useState<'agua' | 'gas'>(condominio.temAgua ? 'agua' : 'gas');
-    const [medicao, setMedicao] = useState('');
-    const [fotos, setFotos] = useState<string[]>([]);
-    const [errors, setErrors] = useState<Record<string, string>>({});
-    const [loading, setLoading] = useState(false);
-    const [sucesso, setSucesso] = useState(false);
+    const mesAtual = getMesAtual();
+    const tiposPermitidos = getTiposPermitidos(context);
+    const success = params.success === '1';
+    const errorMessage = params.error ? decodeURIComponent(params.error) : '';
 
-    const validate = () => {
-        const errs: Record<string, string> = {};
-        if (!medicao) errs.medicao = 'Informe a medição';
-        else if (isNaN(Number(medicao)) || Number(medicao) <= 0) errs.medicao = 'Medição deve ser um número positivo';
-        if (fotos.length === 0) errs.fotos = 'Envie pelo menos uma foto do medidor';
-        setErrors(errs);
-        return Object.keys(errs).length === 0;
-    };
-
-    const handleFotoUpload = () => {
-        // Simula upload de foto
-        setFotos(prev => [...prev, `foto_${prev.length + 1}.jpg`]);
-        setErrors(prev => ({ ...prev, fotos: '' }));
-    };
-
-    const removeFoto = (index: number) => {
-        setFotos(prev => prev.filter((_, i) => i !== index));
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!validate()) return;
-
-        setLoading(true);
-        await new Promise(r => setTimeout(r, 2000));
-        setLoading(false);
-        setSucesso(true);
-        setMedicao('');
-        setFotos([]);
-    };
-
-    if (sucesso) {
+    if (tiposPermitidos.length === 0) {
         return (
             <div className="max-w-lg mx-auto space-y-6">
-                <div className="rounded-2xl border border-green-200 bg-green-50 p-8 text-center space-y-4">
-                    <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                        <FaCheck className="h-8 w-8 text-green-600" />
-                    </div>
-                    <h2 className="text-xl font-bold text-green-900">Leitura enviada!</h2>
-                    <p className="text-green-700 text-sm">
-                        Sua medição foi enviada com sucesso e será analisada pela equipe.
-                    </p>
-                    <Link
-                        href="/app"
-                        className="inline-flex items-center gap-2 rounded-xl bg-vscode-blue px-5 py-3 text-sm font-semibold text-white hover:bg-vscode-blue-dark transition-all"
-                    >
-                        Voltar ao Dashboard
+                <div className="flex items-center gap-4">
+                    <Link href="/app" className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
+                        <FaArrowLeft className="h-4 w-4" />
                     </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900">Enviar Leitura</h1>
+                        <p className="text-slate-500 text-sm">Mes {formatMes(mesAtual)}</p>
+                    </div>
+                </div>
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+                    Sua unidade nao possui tipos de leitura habilitados.
+                </div>
+            </div>
+        );
+    }
+
+    const { data: fechamento } = await supabase
+        .from('fechamentos_mensais')
+        .select('fechado')
+        .eq('condominio_id', context.condominioId)
+        .eq('mes_referencia', mesAtual)
+        .maybeSingle();
+
+    const mesFechado = fechamento?.fechado === true;
+    const envioHabilitado = context.envioLeituraMoradorHabilitado;
+
+    const { data: leiturasMesRaw } = await supabase
+        .from('leituras_mensais')
+        .select('tipo')
+        .eq('unidade_id', context.unidadeId)
+        .eq('mes_referencia', mesAtual);
+
+    const leiturasMes = (leiturasMesRaw || []) as unknown as LeituraTipoRow[];
+    const tiposEnviados = new Set(leiturasMes.map((l) => l.tipo));
+
+    if (!envioHabilitado) {
+        return (
+            <div className="max-w-lg mx-auto space-y-6">
+                <div className="flex items-center gap-4">
+                    <Link href="/app" className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
+                        <FaArrowLeft className="h-4 w-4" />
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900">Enviar Leitura</h1>
+                        <p className="text-slate-500 text-sm">Mes {formatMes(mesAtual)}</p>
+                    </div>
+                </div>
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+                    O envio de leitura nao esta habilitado para sua unidade.
+                </div>
+            </div>
+        );
+    }
+
+    if (mesFechado) {
+        return (
+            <div className="max-w-lg mx-auto space-y-6">
+                <div className="flex items-center gap-4">
+                    <Link href="/app" className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
+                        <FaArrowLeft className="h-4 w-4" />
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900">Enviar Leitura</h1>
+                        <p className="text-slate-500 text-sm">Mes {formatMes(mesAtual)}</p>
+                    </div>
+                </div>
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+                    Este mes ja foi fechado. Nao e mais possivel enviar leitura.
                 </div>
             </div>
         );
@@ -82,139 +130,115 @@ export default function EnviarLeituraPage() {
 
     return (
         <div className="max-w-lg mx-auto space-y-6">
-            {/* Header */}
             <div className="flex items-center gap-4">
-                <Link
-                    href="/app"
-                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
-                >
+                <Link href="/app" className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
                     <FaArrowLeft className="h-4 w-4" />
                 </Link>
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">Enviar Leitura</h1>
-                    <p className="text-slate-500 text-sm">Foto do medidor + medição</p>
+                    <p className="text-slate-500 text-sm">Mes {formatMes(mesAtual)}</p>
                 </div>
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
-                {/* Type selector */}
-                {condominio.temAgua && condominio.temGas && (
-                    <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-700">Tipo de Leitura</label>
-                        <div className="grid grid-cols-2 gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setTipo('agua')}
-                                className={`flex items-center justify-center gap-2 rounded-xl border-2 p-3 text-sm font-semibold transition-all ${tipo === 'agua'
-                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                                    }`}
-                            >
-                                <FaTint className="h-4 w-4" />
-                                Água
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setTipo('gas')}
-                                className={`flex items-center justify-center gap-2 rounded-xl border-2 p-3 text-sm font-semibold transition-all ${tipo === 'gas'
-                                        ? 'border-orange-500 bg-orange-50 text-orange-700'
-                                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                                    }`}
-                            >
-                                <FaFire className="h-4 w-4" />
-                                Gás
-                            </button>
-                        </div>
-                    </div>
-                )}
+            {success && (
+                <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800 flex items-center gap-2">
+                    <FaCheckCircle className="h-4 w-4" />
+                    Leitura enviada com sucesso.
+                </div>
+            )}
 
-                {/* Measurement */}
+            {errorMessage && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                    {errorMessage}
+                </div>
+            )}
+
+            <form action={enviarLeituraMorador} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+                <div className="space-y-2">
+                    <label className="block text-sm font-medium text-slate-700">Tipo de leitura</label>
+                    <select
+                        name="tipo"
+                        defaultValue={tiposPermitidos[0] || ''}
+                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+                        required
+                    >
+                        {tiposPermitidos.map((tipo) => (
+                            <option key={tipo} value={tipo}>
+                                {formatTipo(tipo)} {tiposEnviados.has(tipo) ? '(ja enviada neste mes)' : '(pendente)'}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
                 <div className="space-y-2">
                     <label htmlFor="medicao" className="block text-sm font-medium text-slate-700">
-                        Medição (m³)
+                        Medicao (m3)
                     </label>
-                    <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                            <FaTachometerAlt className="h-4 w-4" />
-                        </div>
+                    <input
+                        id="medicao"
+                        name="medicao"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        placeholder="Ex: 123.45"
+                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+                        required
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <label htmlFor="fotos" className="block text-sm font-medium text-slate-700">
+                        Fotos do medidor
+                    </label>
+                    <div className="rounded-xl border-2 border-dashed border-slate-300 p-4">
+                        <label htmlFor="fotos" className="flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100">
+                            <FaCloudUploadAlt className="h-4 w-4" />
+                            Selecionar fotos
+                        </label>
                         <input
-                            id="medicao"
-                            type="number"
-                            step="0.01"
-                            value={medicao}
-                            onChange={e => setMedicao(e.target.value)}
-                            className={`w-full rounded-xl border ${errors.medicao ? 'border-red-300' : 'border-slate-200'} pl-11 pr-12 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-vscode-blue/20 focus:border-vscode-blue transition-all`}
-                            placeholder="Ex: 18.5"
+                            id="fotos"
+                            name="fotos"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            multiple
+                            required
+                            className="mt-3 w-full text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-vscode-blue file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-vscode-blue-dark"
                         />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">m³</span>
-                    </div>
-                    {errors.medicao && <p className="text-sm text-red-600">{errors.medicao}</p>}
-                </div>
-
-                {/* Photo upload */}
-                <div className="space-y-3">
-                    <label className="block text-sm font-medium text-slate-700">
-                        Foto do Medidor
-                    </label>
-
-                    {/* Upload area */}
-                    <button
-                        type="button"
-                        onClick={handleFotoUpload}
-                        className="w-full rounded-xl border-2 border-dashed border-slate-300 p-8 text-center hover:border-vscode-blue hover:bg-vscode-blue/5 transition-all group"
-                    >
-                        <FaCloudUploadAlt className="h-10 w-10 text-slate-400 group-hover:text-vscode-blue mx-auto mb-3 transition-colors" />
-                        <p className="text-sm font-medium text-slate-600 group-hover:text-vscode-blue transition-colors">
-                            Clique para tirar foto ou selecionar
+                        <p className="mt-2 text-xs text-slate-500">
+                            Envie ao menos 1 foto legivel (JPG, PNG ou WebP).
                         </p>
-                        <p className="text-xs text-slate-400 mt-1">JPG, PNG ou WebP</p>
-                    </button>
-
-                    {/* Uploaded photos */}
-                    {fotos.length > 0 && (
-                        <div className="grid grid-cols-3 gap-3">
-                            {fotos.map((foto, i) => (
-                                <div key={i} className="relative aspect-square rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center">
-                                    <FaCamera className="h-6 w-6 text-slate-400" />
-                                    <button
-                                        type="button"
-                                        onClick={() => removeFoto(i)}
-                                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm hover:bg-red-600 transition-colors"
-                                    >
-                                        <FaTrash className="h-3 w-3" />
-                                    </button>
-                                    <span className="absolute bottom-1 text-[10px] text-slate-500">{foto}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {errors.fotos && <p className="text-sm text-red-600">{errors.fotos}</p>}
+                    </div>
                 </div>
 
-                {/* Submit */}
                 <button
                     type="submit"
-                    disabled={loading}
-                    className="w-full rounded-xl bg-vscode-blue py-3.5 text-white font-semibold shadow-lg shadow-vscode-blue/25 hover:bg-vscode-blue-dark hover:shadow-xl transition-all duration-200 hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-vscode-blue py-3.5 text-sm font-semibold text-white shadow-lg shadow-vscode-blue/25 hover:bg-vscode-blue-dark transition-all"
                 >
-                    {loading ? (
-                        'Enviando...'
-                    ) : (
-                        <>
-                            <FaCamera className="h-4 w-4" />
-                            Enviar Leitura
-                        </>
-                    )}
+                    <FaCamera className="h-4 w-4" />
+                    Enviar leitura
                 </button>
             </form>
 
-            {/* Info */}
-            <div className="rounded-xl bg-blue-50 border border-blue-200 p-4">
-                <p className="text-xs text-blue-800">
-                    📌 Fotografe o visor do medidor de forma legível. A medição informada será validada pela equipe.
-                </p>
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-xs text-blue-900 flex items-start gap-2">
+                <FaInfoCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>
+                    E permitido apenas um envio por tipo no mes atual. Se precisar corrigir, contate a administracao.
+                </span>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <p className="text-xs font-medium text-slate-700 mb-2">Tipos habilitados para sua unidade</p>
+                <div className="flex flex-wrap gap-2">
+                    {tiposPermitidos.map((tipo) => {
+                        const Icon = getTipoIcon(tipo);
+                        return (
+                            <span key={tipo} className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700">
+                                <Icon className="h-3.5 w-3.5" />
+                                {formatTipo(tipo)}
+                            </span>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );

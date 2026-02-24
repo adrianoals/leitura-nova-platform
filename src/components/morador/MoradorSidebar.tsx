@@ -5,8 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { FaChartLine, FaHistory, FaKey, FaSignOutAlt, FaBars, FaTimes, FaTint, FaCamera, FaSpinner } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/client';
-import { isLeituraOpen } from '@/utils/dateUtils';
-import { Condominio } from '@/types';
+import { getMesAtual } from '@/lib/morador';
 
 const baseNavItems = [
     { label: 'Dashboard', href: '/app', icon: FaChartLine },
@@ -32,34 +31,29 @@ export default function MoradorSidebar() {
 
                 const { data: morador } = await supabase
                     .from('moradores')
-                    .select('unidade:unidades(condominio:condominios(*))')
+                    .select('unidade:unidades(condominio_id, condominio:condominios(envio_leitura_morador_habilitado))')
                     .eq('auth_user_id', user.id)
                     .single();
 
                 const rawUnidade = Array.isArray(morador?.unidade) ? morador.unidade[0] : morador?.unidade;
                 const rawCondominio = Array.isArray(rawUnidade?.condominio) ? rawUnidade.condominio[0] : rawUnidade?.condominio;
+                const condominioId = rawUnidade?.condominio_id;
+                const envioHabilitado = rawCondominio?.envio_leitura_morador_habilitado === true;
 
-                if (rawCondominio) {
-                    const condominioObj = rawCondominio as {
-                        id: string;
-                        nome: string;
-                        tem_agua: boolean;
-                        tem_agua_quente: boolean;
-                        tem_gas: boolean;
-                        envio_leitura_morador_habilitado: boolean;
-                    };
-
-                    const condominioMapped: Condominio = {
-                        id: condominioObj.id,
-                        nome: condominioObj.nome,
-                        temAgua: condominioObj.tem_agua,
-                        temAguaQuente: condominioObj.tem_agua_quente,
-                        temGas: condominioObj.tem_gas,
-                        envioLeituraMoradorHabilitado: condominioObj.envio_leitura_morador_habilitado,
-                    };
-
-                    setShowEnviarLeitura(isLeituraOpen(condominioMapped));
+                if (!condominioId || !envioHabilitado) {
+                    setShowEnviarLeitura(false);
+                    return;
                 }
+
+                const mesAtual = getMesAtual();
+                const { data: fechamento } = await supabase
+                    .from('fechamentos_mensais')
+                    .select('fechado')
+                    .eq('condominio_id', condominioId)
+                    .eq('mes_referencia', mesAtual)
+                    .maybeSingle();
+
+                setShowEnviarLeitura(fechamento?.fechado !== true);
             } catch (error) {
                 console.error('Erro ao verificar permissões:', error);
             } finally {

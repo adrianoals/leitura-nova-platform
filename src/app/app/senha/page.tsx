@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { FaArrowLeft, FaLock, FaEye, FaEyeSlash, FaCheck } from 'react-icons/fa';
+import { createClient } from '@/lib/supabase/client';
 
 export default function SenhaPage() {
     const [senhaAtual, setSenhaAtual] = useState('');
@@ -14,6 +15,7 @@ export default function SenhaPage() {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [sucesso, setSucesso] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [formError, setFormError] = useState('');
 
     const validate = () => {
         const errs: Record<string, string> = {};
@@ -27,17 +29,54 @@ export default function SenhaPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setFormError('');
         if (!validate()) return;
 
         setLoading(true);
-        // Simular chamada
-        await new Promise(r => setTimeout(r, 1500));
-        setLoading(false);
-        setSucesso(true);
-        setSenhaAtual('');
-        setNovaSenha('');
-        setConfirmar('');
-        setTimeout(() => setSucesso(false), 3000);
+
+        try {
+            const supabase = createClient();
+            const {
+                data: { user },
+            } = await supabase.auth.getUser();
+
+            if (!user?.email) {
+                setFormError('Sessao invalida. Faca login novamente.');
+                setLoading(false);
+                return;
+            }
+
+            const { error: authError } = await supabase.auth.signInWithPassword({
+                email: user.email,
+                password: senhaAtual,
+            });
+
+            if (authError) {
+                setFormError('Senha atual incorreta.');
+                setLoading(false);
+                return;
+            }
+
+            const { error: updateError } = await supabase.auth.updateUser({
+                password: novaSenha,
+            });
+
+            if (updateError) {
+                setFormError('Nao foi possivel alterar a senha.');
+                setLoading(false);
+                return;
+            }
+
+            setSucesso(true);
+            setSenhaAtual('');
+            setNovaSenha('');
+            setConfirmar('');
+            setTimeout(() => setSucesso(false), 3000);
+        } catch {
+            setFormError('Erro inesperado ao alterar senha.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -61,6 +100,12 @@ export default function SenhaPage() {
                 <div className="flex items-center gap-3 rounded-xl bg-green-50 border border-green-200 p-4 text-green-800">
                     <FaCheck className="h-5 w-5 text-green-500" />
                     <p className="text-sm font-medium">Senha alterada com sucesso!</p>
+                </div>
+            )}
+
+            {formError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                    {formError}
                 </div>
             )}
 

@@ -1,161 +1,105 @@
-Perfeito — editei o PRD **do login do morador** exatamente com o que você falou (sem “por enquanto” nas coisas que você decidiu que **não vão existir**).
+# PRD - Portal do Morador
 
----
+## 1. Objetivo
 
-# PRD — Área do Morador (Login por Apartamento) — Versão Ajustada
+Entregar uma area logada para o morador visualizar e, quando permitido, enviar leitura da **propria unidade**.
 
-## 1) Visão geral
+O portal deve ser simples, direto e consistente com as regras do painel admin ja implementado.
 
-Área logada para o morador acessar **apenas informações** da sua unidade (apartamento).
-Cada acesso é **por unidade** (não existe login que enxergue múltiplos apartamentos/condomínios).
+## 2. Regras de negocio
 
-O portal exibe somente:
+1. Cada unidade possui apenas 1 morador proprietario (acesso unico).
+2. O morador enxerga apenas dados da propria unidade.
+3. Leituras visiveis ao morador:
+   1. apenas meses fechados/publicados;
+   2. limite de historico de 12 meses.
+4. Envio de leitura pelo morador so aparece se:
+   1. `condominios.envio_leitura_morador_habilitado = true`;
+   2. mes atual nao estiver fechado em `fechamentos_mensais`.
+5. Tipos de leitura dependem da configuracao do condominio:
+   1. `tem_agua=true` e `tem_agua_quente=false` -> tipo `agua`;
+   2. `tem_agua=true` e `tem_agua_quente=true` -> tipos `agua_fria` e `agua_quente`;
+   3. `tem_gas=true` -> tipo `gas`.
+6. Morador pode alterar a propria senha no portal.
 
-* **Data da leitura**
-* **Medição**
-* **Valor**
-* (Opcional) **Link para inserção de leitura**, apenas quando o condomínio/unidade estiver habilitado para isso.
+## 3. Escopo
 
----
+### 3.1 Dentro do escopo
 
-## 2) Premissas e regras
+1. Login do morador (`/login`).
+2. Dashboard (`/app`) com resumo da unidade.
+3. Historico (`/app/leituras`) limitado aos ultimos 12 meses.
+4. Detalhe mensal (`/app/leituras/[mes]`) com leituras e fotos.
+5. Envio de leitura (`/app/enviar-leitura`) com medicao e fotos.
+6. Troca de senha (`/app/senha`).
 
-### Regra A — Tudo é inserido pelo Admin
+### 3.2 Fora do escopo
 
-**Todas as informações exibidas no portal do morador** (leituras, valores, fotos e configurações) **são cadastradas pelo usuário Admin** no painel administrativo.
+1. Boletos, pagamentos e financeiro.
+2. Edicao de cadastro pessoal.
+3. Visualizacao de outras unidades/condominios.
+4. Funcionalidades administrativas.
 
-O morador **não edita nada** no portal.
+## 4. Experiencia esperada por tela
 
-### Regra B — Leituras mensais e simples
+### 4.1 Dashboard (`/app`)
 
-Cada registro de leitura é **mensal** e deve exibir somente:
+1. Exibir condominio, bloco e apartamento.
+2. Cards por tipo de leitura habilitado:
+   1. data;
+   2. medicao;
+   3. valor.
+3. Quando nao houver leitura do mes atual, exibir mensagem clara de nao atualizado.
+4. Atalhos para:
+   1. historico;
+   2. enviar leitura (apenas se permitido).
 
-* **Tipo:** Água e/ou Gás (se habilitado)
-* **Data da leitura**
-* **Medição**
-* **Valor**
+### 4.2 Historico (`/app/leituras`)
 
-> Não exibir hora.
+1. Listar meses com leitura disponivel (maximo 12 meses).
+2. Cada linha exibe resumo por tipo e link para detalhe.
+3. Se nao houver dados, exibir estado vazio com orientacao.
 
-### Regra C — Mês atual + histórico limitado a 12 meses
+### 4.3 Detalhe mensal (`/app/leituras/[mes]`)
 
-* O morador pode ver o **mês atual** (se já existir leitura cadastrada pelo admin).
-* Pode ver também um histórico limitado aos **últimos 12 meses**.
-* Leituras anteriores a isso **não ficam disponíveis**.
+1. Exibir todas as leituras do mes selecionado para os tipos habilitados.
+2. Exibir data, medicao e valor por leitura.
+3. Exibir galeria de fotos quando houver.
 
-### Regra D — Mês atual pode estar “não atualizado”
+### 4.4 Enviar leitura (`/app/enviar-leitura`)
 
-Se ainda não existir leitura do mês atual, exibir um aviso claro, exemplo:
+1. Exibir formulario somente se envio estiver habilitado e mes aberto.
+2. Campos:
+   1. tipo;
+   2. medicao;
+   3. fotos.
+3. Validacoes:
+   1. medicao > 0;
+   2. pelo menos 1 foto.
+4. Salvar leitura com `criado_por_morador=true`.
+5. Exibir feedback claro de sucesso/erro.
 
-* “Leitura do mês ainda não está atualizada.”
+### 4.5 Trocar senha (`/app/senha`)
 
-### Regra E — Link de inserção (condicional e sem confundir o usuário)
+1. Solicitar senha atual, nova senha e confirmacao.
+2. Validar senha minima e confirmacao.
+3. Atualizar senha no Supabase Auth.
 
-* Se o condomínio/unidade **tiver a opção de inserir medição via link habilitada**, o portal mostra um botão/link (ex.: “Informar medição”).
-* Se **não tiver habilitado**, **não aparece nada** (o usuário não deve ver opção desabilitada, nem placeholder, nem aviso).
+## 5. Fonte de dados
 
-### Regra F — Tipos habilitados (água/gás)
+1. `moradores` (vinculo do usuario logado com unidade).
+2. `unidades` e `condominios` (contexto da unidade e tipos habilitados).
+3. `leituras_mensais` (leituras mensais por tipo).
+4. `fotos_leitura` + Storage bucket `leitura-fotos` (fotos da leitura).
+5. `fechamentos_mensais` (controle de publicacao e bloqueio de envio).
 
-* Se a unidade tiver **somente água**, mostrar apenas água.
-* Se tiver **somente gás**, mostrar apenas gás.
-* Se tiver **ambos**, mostrar os dois.
+## 6. Criterios de aceite
 
----
+1. Usuario nao autenticado deve ser redirecionado para `/login`.
+2. Morador sem unidade vinculada deve ver mensagem de estado sem quebrar tela.
+3. Historico deve respeitar limite de 12 meses.
+4. Mes nao fechado nao pode aparecer para consulta do morador.
+5. Envio de leitura deve falhar com mensagem amigavel quando o mes estiver fechado.
+6. Troca de senha deve funcionar com feedback de sucesso e erro.
+7. Navegacao deve manter o mesmo padrao visual do admin ja aprovado.
 
-## 3) Escopo
-
-### Dentro do escopo (o que terá)
-
-* **/login** (login do morador)
-* **/app** (dashboard da unidade) — apenas visualização
-* Listagem de leituras: **mês atual + últimos 12 meses**
-* Exibição de **fotos** vinculadas às leituras (quando existirem)
-* Exibição condicional do **link de inserção** (quando habilitado)
-
-### Fora do escopo (não terá)
-
-* Visualizar histórico além de 12 meses
-* **Pagamento, boleto, 2ª via, financeiro** (não entra no produto)
-* **Alteração de dados cadastrais** (não terá; privacidade/irrelevante para o portal)
-* Funcionalidades administrativas (admin é outro painel, separado)
-
-### Exceção (permitido)
-
-* Área simples para **trocar senha** no portal do morador (apenas isso).
-
----
-
-## 4) Telas
-
-### 4.1 /login — Login do morador
-
-* Identificador (definir depois: e-mail/CPF/código) + senha
-* “Esqueci minha senha”
-* Estados: carregando / erro / sucesso
-
-### 4.2 /app — Dashboard da unidade (somente informações)
-
-**Cabeçalho:**
-
-* Identificação da unidade (ex.: Condomínio • Torre/Bloco • Apto)
-
-**Seções:**
-
-* Água (se habilitado)
-* Gás (se habilitado)
-
-**Em cada seção (água/gás):**
-
-* Mês atual:
-
-  * Se existir: **data da leitura + medição + valor**
-  * Se não existir: “Leitura do mês ainda não está atualizada.”
-* Acesso ao histórico: “Ver últimos 12 meses”
-* (Opcional) botão “Ver fotos” (se existirem)
-
-**Link de inserção:**
-
-* Exibir somente se a unidade/condomínio estiver habilitado
-* Se não estiver habilitado: não aparece
-
-### 4.3 /leituras — Histórico (últimos 12 meses)
-
-* Lista limitada aos últimos 12 meses
-* Cada item:
-
-  * Tipo (água/gás)
-  * Data da leitura
-  * Medição
-  * Valor
-  * “Detalhes / Fotos” (se aplicável)
-
-### 4.4 /leituras/[mes] — Detalhe do mês
-
-* Tipo (água/gás)
-* Data da leitura
-* Medição
-* Valor
-* Fotos (galeria), se houver
-
-### 4.5 /senha (ou /settings) — Trocar senha
-
-* Trocar senha (única configuração do morador)
-
----
-
-## 5) Configurações controladas pelo Admin (que impactam o morador)
-
-* Unidade tem **água**? (sim/não)
-* Unidade tem **gás**? (sim/não)
-* Unidade/condomínio tem **link de inserção**? (sim/não)
-* URL do link (se habilitado)
-* Cadastro mensal de:
-
-  * data da leitura
-  * medição
-  * valor
-  * fotos (opcional)
-
----
-
-Se estiver ok, no próximo passo a gente faz o **PRD do Admin** (painel separado), descrevendo exatamente como o admin vai cadastrar: condomínios, unidades, habilitações (água/gás/link) e inserir as leituras mensais.
