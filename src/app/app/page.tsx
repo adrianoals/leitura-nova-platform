@@ -111,9 +111,6 @@ export default async function AppDashboard() {
     const leiturasMesAtual = leituras.filter((l) => l.mesReferencia === mesAtual);
     const hasLeituraMesAtual = leiturasMesAtual.length > 0;
 
-    const leiturasAguaChart = leituras.filter((l) => l.tipo === 'agua' || l.tipo === 'agua_fria' || l.tipo === 'agua_quente');
-    const leiturasGasChart = leituras.filter((l) => l.tipo === 'gas');
-
     return (
         <div className="max-w-5xl mx-auto space-y-8">
             <div>
@@ -184,9 +181,8 @@ export default async function AppDashboard() {
             </div>
 
             <ConsumoChart
-                leiturasAgua={leiturasAguaChart}
-                leiturasGas={leiturasGasChart}
-                mostrarGas={tiposPermitidos.includes('gas')}
+                leituras={leituras}
+                tiposPermitidos={tiposPermitidos}
             />
         </div>
     );

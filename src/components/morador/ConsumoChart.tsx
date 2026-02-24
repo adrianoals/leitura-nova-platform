@@ -12,53 +12,53 @@ import {
     ComposedChart,
 } from 'recharts';
 import { LeituraMensal } from '@/types';
-import { formatMes, formatValor } from '@/lib/morador';
+import { formatMes, formatTipo, formatValor, type TipoLeitura } from '@/lib/morador';
+
+const TIPO_CONFIG: Record<TipoLeitura, { cor: string; corLinha: string }> = {
+    agua: { cor: '#3b82f6', corLinha: '#1d4ed8' },
+    agua_fria: { cor: '#06b6d4', corLinha: '#0891b2' },
+    agua_quente: { cor: '#f43f5e', corLinha: '#be123c' },
+    gas: { cor: '#f97316', corLinha: '#c2410c' },
+};
 
 interface ConsumoChartProps {
-    leiturasAgua: LeituraMensal[];
-    leiturasGas: LeituraMensal[];
-    mostrarGas: boolean;
+    leituras: LeituraMensal[];
+    tiposPermitidos: TipoLeitura[];
 }
 
-export default function ConsumoChart({ leiturasAgua, leiturasGas, mostrarGas }: ConsumoChartProps) {
+export default function ConsumoChart({ leituras, tiposPermitidos }: ConsumoChartProps) {
     const meses = Array.from(
-        new Set([...leiturasAgua.map((l) => l.mesReferencia), ...leiturasGas.map((l) => l.mesReferencia)])
+        new Set(leituras.map((l) => l.mesReferencia))
     )
         .sort()
         .slice(-6);
 
-    let prevAguaMedicao: number | null = null;
-    let prevGasMedicao: number | null = null;
+    // Track previous medicao per tipo for delta calculation
+    const prevMedicao: Record<string, number | null> = {};
+    for (const tipo of tiposPermitidos) {
+        prevMedicao[tipo] = null;
+    }
 
-    const chartData = meses.map(mes => {
-        const aguaMes = leiturasAgua.filter((l) => l.mesReferencia === mes);
-        const gasMes = leiturasGas.filter((l) => l.mesReferencia === mes);
+    const chartData = meses.map((mes) => {
+        const row: Record<string, string | number | null> = { mes: formatMes(mes) };
 
-        const agua = {
-            medicao: aguaMes.reduce((sum, leitura) => sum + Number(leitura.medicao), 0),
-            valor: aguaMes.reduce((sum, leitura) => sum + Number(leitura.valor), 0),
-        };
+        for (const tipo of tiposPermitidos) {
+            const leiturasMes = leituras.filter((l) => l.mesReferencia === mes && l.tipo === tipo);
+            const medicao = leiturasMes.reduce((sum, l) => sum + Number(l.medicao), 0);
+            const valor = leiturasMes.reduce((sum, l) => sum + Number(l.valor), 0);
+            const consumo = prevMedicao[tipo] === null ? null : medicao - prevMedicao[tipo]!;
 
-        const gas = {
-            medicao: gasMes.reduce((sum, leitura) => sum + Number(leitura.medicao), 0),
-            valor: gasMes.reduce((sum, leitura) => sum + Number(leitura.valor), 0),
-        };
+            row[`medicao_${tipo}`] = medicao;
+            row[`consumo_${tipo}`] = consumo;
+            row[`valor_${tipo}`] = valor;
 
-        const consumoAgua = prevAguaMedicao === null ? null : agua.medicao - prevAguaMedicao;
-        const consumoGas = prevGasMedicao === null ? null : gas.medicao - prevGasMedicao;
-        prevAguaMedicao = agua.medicao;
-        prevGasMedicao = gas.medicao;
+            prevMedicao[tipo] = medicao;
+        }
 
-        return {
-            mes: formatMes(mes),
-            medicaoAgua: agua.medicao,
-            medicaoGas: gas.medicao,
-            consumoAgua,
-            consumoGas,
-            valorAgua: agua.valor,
-            valorGas: gas.valor,
-        };
+        return row;
     });
+
+    const barSize = tiposPermitidos.length === 1 ? 32 : tiposPermitidos.length === 2 ? 24 : 16;
 
     return (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -84,74 +84,65 @@ export default function ConsumoChart({ leiturasAgua, leiturasGas, mostrarGas }: 
                             }}
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             formatter={(value: any, name: any) => {
-                                const labels: Record<string, string> = {
-                                    medicaoAgua: 'Medicao Agua',
-                                    medicaoGas: 'Medicao Gas',
-                                    consumoAgua: 'Consumo Agua',
-                                    consumoGas: 'Consumo Gas',
-                                };
+                                const [metrica, ...tipoParts] = name.split('_');
+                                const tipo = tipoParts.join('_') as TipoLeitura;
+                                const tipoLabel = formatTipo(tipo);
+                                const metricaLabel = metrica === 'medicao' ? 'Medicao' : 'Consumo';
                                 const display = value === null || value === undefined ? '-' : `${value} m3`;
-                                return [display, labels[name] || String(name)];
+                                return [display, `${metricaLabel} ${tipoLabel}`];
                             }}
                         />
                         <Legend
                             formatter={(value: string) => {
-                                const labels: Record<string, string> = {
-                                    medicaoAgua: 'Medicao Agua',
-                                    medicaoGas: 'Medicao Gas',
-                                    consumoAgua: 'Consumo Agua',
-                                    consumoGas: 'Consumo Gas',
-                                };
-                                return labels[value] || value;
+                                const [metrica, ...tipoParts] = value.split('_');
+                                const tipo = tipoParts.join('_') as TipoLeitura;
+                                const tipoLabel = formatTipo(tipo);
+                                const metricaLabel = metrica === 'medicao' ? 'Medicao' : 'Consumo';
+                                return `${metricaLabel} ${tipoLabel}`;
                             }}
                             iconType="circle"
                         />
-                        <Bar dataKey="medicaoAgua" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={mostrarGas ? 20 : 32} />
-                        {mostrarGas && (
-                            <Bar dataKey="medicaoGas" fill="#f97316" radius={[6, 6, 0, 0]} barSize={20} />
-                        )}
-                        <Line
-                            dataKey="consumoAgua"
-                            stroke="#1d4ed8"
-                            strokeWidth={2}
-                            dot={{ fill: '#1d4ed8', r: 4 }}
-                            type="monotone"
-                        />
-                        {mostrarGas && (
+                        {tiposPermitidos.map((tipo) => (
+                            <Bar
+                                key={`medicao_${tipo}`}
+                                dataKey={`medicao_${tipo}`}
+                                fill={TIPO_CONFIG[tipo].cor}
+                                radius={[6, 6, 0, 0]}
+                                barSize={barSize}
+                            />
+                        ))}
+                        {tiposPermitidos.map((tipo) => (
                             <Line
-                                dataKey="consumoGas"
-                                stroke="#c2410c"
+                                key={`consumo_${tipo}`}
+                                dataKey={`consumo_${tipo}`}
+                                stroke={TIPO_CONFIG[tipo].corLinha}
                                 strokeWidth={2}
-                                dot={{ fill: '#c2410c', r: 4 }}
+                                dot={{ fill: TIPO_CONFIG[tipo].corLinha, r: 4 }}
                                 type="monotone"
                             />
-                        )}
+                        ))}
                     </ComposedChart>
                 </ResponsiveContainer>
             </div>
 
             {/* Value summary */}
-            <div className={`grid ${mostrarGas ? 'grid-cols-2' : 'grid-cols-1'} gap-4 mt-4 pt-4 border-t border-slate-100`}>
-                <div className="flex items-center gap-3">
-                    <div className="h-3 w-3 rounded-full bg-blue-500" />
-                    <div>
-                        <p className="text-xs text-slate-500">Total Água (6 meses)</p>
-                        <p className="text-sm font-semibold text-slate-900">
-                            {formatValor(chartData.reduce((sum, d) => sum + d.valorAgua, 0))}
-                        </p>
-                    </div>
-                </div>
-                {mostrarGas && (
-                    <div className="flex items-center gap-3">
-                        <div className="h-3 w-3 rounded-full bg-orange-500" />
+            <div className={`grid grid-cols-${tiposPermitidos.length} gap-4 mt-4 pt-4 border-t border-slate-100`}>
+                {tiposPermitidos.map((tipo) => (
+                    <div key={tipo} className="flex items-center gap-3">
+                        <div
+                            className="h-3 w-3 rounded-full"
+                            style={{ backgroundColor: TIPO_CONFIG[tipo].cor }}
+                        />
                         <div>
-                            <p className="text-xs text-slate-500">Total Gás (6 meses)</p>
+                            <p className="text-xs text-slate-500">Total {formatTipo(tipo)} (6 meses)</p>
                             <p className="text-sm font-semibold text-slate-900">
-                                {formatValor(chartData.reduce((sum, d) => sum + d.valorGas, 0))}
+                                {formatValor(
+                                    chartData.reduce((sum, d) => sum + Number(d[`valor_${tipo}`] || 0), 0)
+                                )}
                             </p>
                         </div>
                     </div>
-                )}
+                ))}
             </div>
         </div>
     );
