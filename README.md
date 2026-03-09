@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Leitura Nova — Water & Gas Meter Reading Platform
+
+**Full-stack web application built for Leitura Nova**
+
+🇧🇷 [Leia em Português](README.pt-br.md)
+
+🔗 **Live:** [leituranova.com.br](https://leituranova.com.br)
+
+A modern platform developed for **Leitura Nova**, a Brazilian company specializing in condominium utility reading management. The system supports water and gas meter readings across multiple condominiums, featuring a multi-role architecture where residents submit meter photos, syndics monitor their units, and administrators manage the entire operation.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | Next.js 16, React, TypeScript, Tailwind CSS |
+| **Backend** | Next.js API Routes, Server Actions |
+| **Database** | Supabase (PostgreSQL), Row Level Security (RLS) |
+| **Auth** | Supabase Auth (multi-role: admin, syndic, resident) |
+| **Storage** | Supabase Storage (meter photos) |
+| **Deploy** | Vercel (auto-deploy + CDN) |
+
+## Features
+
+- **Multi-role system** (admin, syndic, resident) with dedicated dashboards
+- Residents upload meter reading photos from their phones
+- Admin panel for managing condominiums, units, and reading windows
+- Syndic area for monitoring units under their responsibility
+- Monthly reading closure workflow
+- Row Level Security ensuring data isolation between users
+- Responsive mobile-first design
+- SEO optimized with sitemap and robots.txt
+
+## Database Architecture
+
+SQL migrations are versioned in the `/database` directory, covering:
+
+- Table definitions and relationships
+- Row Level Security (RLS) policies
+- Storage policies for meter photos
+- Seed data
+- Reading window configuration
+- Monthly closure logic
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── (site)/        # Public landing page
+│   ├── (sistema)/     # System layout wrapper
+│   ├── admin/         # Admin dashboard
+│   ├── app/           # Resident (morador) portal
+│   ├── sindico/       # Syndic dashboard
+│   ├── login/         # Login pages (morador, admin, sindico)
+│   └── auth/          # OAuth callback
+├── actions/           # Server Actions (mutations)
+├── components/        # UI components (admin, morador, sindico, shared, site)
+├── lib/               # Supabase clients, utilities, helpers
+├── types/             # TypeScript type definitions
+└── utils/             # General utilities
+database/              # SQL migration files (01–10)
+```
 
 ## Getting Started
 
-First, run the development server:
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/leitura-nova-platform.git
+   cd leitura-nova-platform
+   ```
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Set up environment variables:
+   ```bash
+   cp .env.example .env.local
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+4. Configure the Supabase variables in `.env.local` with your project credentials.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+5. Run the SQL migrations in order on the [Supabase Dashboard](https://supabase.com/dashboard) SQL Editor.
 
-## Learn More
+6. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+## Environment Variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+See [`.env.example`](.env.example) for all required variables:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_SITE_URL` | Public site URL (SEO, sitemap, Open Graph) |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key (safe for client) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (**server-only**) |
