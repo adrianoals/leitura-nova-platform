@@ -7,14 +7,14 @@ import { FaChartLine, FaHistory, FaKey, FaSignOutAlt, FaBars, FaTimes, FaTint, F
 import { createClient } from '@/lib/supabase/client';
 import { getMesAtual } from '@/lib/morador';
 
-const baseNavItems = [
-    { label: 'Dashboard', href: '/app', icon: FaChartLine },
-    { label: 'Leituras', href: '/app/leituras', icon: FaHistory },
-];
-
-const enviarLeituraItem = { label: 'Enviar Leitura', href: '/app/enviar-leitura', icon: FaCamera };
 const suporteItem = { label: 'Suporte', href: '/app/suporte', icon: FaLifeRing };
 const senhaItem = { label: 'Trocar Senha', href: '/app/senha', icon: FaKey };
+
+// Extrai unidadeId quando a URL é /app/u/[unidadeId]/...
+function getActiveUnidadeId(pathname: string): string | null {
+    const match = pathname.match(/^\/app\/u\/([^/]+)/);
+    return match ? match[1] : null;
+}
 
 export default function MoradorSidebar({ isPreview = false }: { isPreview?: boolean }) {
     const pathname = usePathname();
@@ -23,8 +23,10 @@ export default function MoradorSidebar({ isPreview = false }: { isPreview?: bool
     const [loading, setLoading] = useState(true);
     const [showEnviarLeitura, setShowEnviarLeitura] = useState(false);
 
+    const activeUnidadeId = getActiveUnidadeId(pathname);
+
     useEffect(() => {
-        if (isPreview) {
+        if (isPreview || !activeUnidadeId) {
             setShowEnviarLeitura(false);
             setLoading(false);
             return;
@@ -36,13 +38,15 @@ export default function MoradorSidebar({ isPreview = false }: { isPreview?: bool
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
 
-                const { data: morador } = await supabase
-                    .from('moradores')
+                const { data: acesso } = await supabase
+                    .from('unidade_acessos')
                     .select('unidade:unidades(condominio_id, condominio:condominios(envio_leitura_morador_habilitado))')
                     .eq('auth_user_id', user.id)
-                    .single();
+                    .eq('unidade_id', activeUnidadeId)
+                    .eq('ativo', true)
+                    .maybeSingle();
 
-                const rawUnidade = Array.isArray(morador?.unidade) ? morador.unidade[0] : morador?.unidade;
+                const rawUnidade = Array.isArray(acesso?.unidade) ? acesso.unidade[0] : acesso?.unidade;
                 const rawCondominio = Array.isArray(rawUnidade?.condominio) ? rawUnidade.condominio[0] : rawUnidade?.condominio;
                 const condominioId = rawUnidade?.condominio_id;
                 const envioHabilitado = rawCondominio?.envio_leitura_morador_habilitado === true;
@@ -69,12 +73,17 @@ export default function MoradorSidebar({ isPreview = false }: { isPreview?: bool
         }
 
         checkPermissions();
-    }, [isPreview]); // Removed supabase from default dep array to avoid infinite loops if client recreates
+    }, [isPreview, activeUnidadeId]);
 
     const getNavItems = () => {
-        const items = [...baseNavItems];
-        if (!isPreview && showEnviarLeitura) {
-            items.push(enviarLeituraItem);
+        const dashboardHref = activeUnidadeId ? `/app/u/${activeUnidadeId}` : '/app';
+        const leiturasHref = activeUnidadeId ? `/app/u/${activeUnidadeId}/leituras` : '/app/leituras';
+        const items = [
+            { label: 'Dashboard', href: dashboardHref, icon: FaChartLine },
+            { label: 'Leituras', href: leiturasHref, icon: FaHistory },
+        ];
+        if (!isPreview && showEnviarLeitura && activeUnidadeId) {
+            items.push({ label: 'Enviar Leitura', href: `/app/u/${activeUnidadeId}/enviar-leitura`, icon: FaCamera });
         }
         items.push(suporteItem);
         if (!isPreview) {
@@ -86,7 +95,9 @@ export default function MoradorSidebar({ isPreview = false }: { isPreview?: bool
     const navItems = getNavItems();
 
     const isActive = (href: string) => {
-        if (href === '/app') return pathname === '/app';
+        if (href === '/app' || (activeUnidadeId && href === `/app/u/${activeUnidadeId}`)) {
+            return pathname === href;
+        }
         return pathname.startsWith(href);
     };
 

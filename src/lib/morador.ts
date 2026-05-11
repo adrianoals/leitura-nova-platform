@@ -18,13 +18,6 @@ type UnidadeRaw = {
     condominio: CondominioRaw | CondominioRaw[] | null;
 };
 
-type MoradorRaw = {
-    id: string;
-    nome: string | null;
-    email: string | null;
-    unidade: UnidadeRaw | UnidadeRaw[] | null;
-};
-
 export type MoradorContext = {
     moradorId: string | null;
     moradorNome: string | null;
@@ -116,81 +109,12 @@ export function formatUnidade(bloco?: string | null, apartamento?: string | null
     return 'Unidade';
 }
 
-export async function getMoradorContextByAuthUserId(
-    supabase: {
-        from: (table: string) => {
-            select: (query: string) => {
-                eq: (column: string, value: string) => {
-                    maybeSingle: () => Promise<{ data: MoradorRaw | null }>;
-                };
-            };
-        };
-    },
-    authUserId: string
-) {
-    const { data: moradorRaw } = await supabase
-        .from('moradores')
-        .select(`
-            id,
-            nome,
-            email,
-            unidade:unidades(
-                id,
-                bloco,
-                apartamento,
-                condominio:condominios(
-                    id,
-                    nome,
-                    tem_agua,
-                    tem_agua_quente,
-                    tem_gas,
-                    envio_leitura_morador_habilitado
-                )
-            )
-        `)
-        .eq('auth_user_id', authUserId)
-        .maybeSingle();
-
-    if (!moradorRaw) return null;
-
-    const unidade = firstOfRelation(moradorRaw.unidade);
-    if (!unidade) return null;
-
-    const condominio = firstOfRelation(unidade.condominio);
-    if (!condominio) return null;
-
-    const context: MoradorContext = {
-        moradorId: moradorRaw.id,
-        moradorNome: moradorRaw.nome,
-        moradorEmail: moradorRaw.email,
-        unidadeId: unidade.id,
-        bloco: unidade.bloco,
-        apartamento: unidade.apartamento,
-        condominioId: condominio.id,
-        condominioNome: condominio.nome,
-        temAgua: condominio.tem_agua,
-        temAguaQuente: condominio.tem_agua_quente,
-        temGas: condominio.tem_gas,
-        envioLeituraMoradorHabilitado: condominio.envio_leitura_morador_habilitado,
-    };
-
-    return context;
-}
-
-type UnidadeComMoradorRaw = {
-    id: string;
-    bloco: string | null;
-    apartamento: string | null;
-    condominio: CondominioRaw | CondominioRaw[] | null;
-    moradores: { id: string; nome: string | null; email: string | null } | { id: string; nome: string | null; email: string | null }[] | null;
-};
-
 export async function getMoradorContextByUnidadeId(
     supabase: {
         from: (table: string) => {
             select: (query: string) => {
                 eq: (column: string, value: string) => {
-                    maybeSingle: () => Promise<{ data: UnidadeComMoradorRaw | null }>;
+                    maybeSingle: () => Promise<{ data: UnidadeRaw | null }>;
                 };
             };
         };
@@ -210,11 +134,6 @@ export async function getMoradorContextByUnidadeId(
                 tem_agua_quente,
                 tem_gas,
                 envio_leitura_morador_habilitado
-            ),
-            moradores(
-                id,
-                nome,
-                email
             )
         `)
         .eq('id', unidadeId)
@@ -225,12 +144,10 @@ export async function getMoradorContextByUnidadeId(
     const condominio = firstOfRelation(unidadeRaw.condominio);
     if (!condominio) return null;
 
-    const morador = firstOfRelation(unidadeRaw.moradores);
-
     const context: MoradorContext = {
-        moradorId: morador?.id || null,
-        moradorNome: morador?.nome || null,
-        moradorEmail: morador?.email || null,
+        moradorId: null,
+        moradorNome: null,
+        moradorEmail: null,
         unidadeId: unidadeRaw.id,
         bloco: unidadeRaw.bloco,
         apartamento: unidadeRaw.apartamento,

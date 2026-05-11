@@ -112,23 +112,44 @@ export async function deleteCondominio(condominioId: string) {
 
     const unidadeIds = await getAllUnidadeIdsByCondominio(supabase, condominioId);
 
-    const moradoresAuthIds: string[] = [];
+    // Levanta auth_user_ids vinculados a qualquer unidade desse condomínio.
+    const acessosAuthIds: string[] = [];
     if (unidadeIds.length > 0) {
         const chunkSize = 500;
 
         for (let i = 0; i < unidadeIds.length; i += chunkSize) {
             const chunk = unidadeIds.slice(i, i + chunkSize);
-            const { data: moradoresRaw } = await supabase
-                .from('moradores')
+            const { data: acessosRaw } = await supabase
+                .from('unidade_acessos')
                 .select('auth_user_id')
                 .in('unidade_id', chunk);
 
-            moradoresAuthIds.push(
-                ...(moradoresRaw || [])
-                    .map((m) => m.auth_user_id)
+            acessosAuthIds.push(
+                ...(acessosRaw || [])
+                    .map((a) => a.auth_user_id)
                     .filter((id): id is string => Boolean(id))
             );
         }
+    }
+
+    // Dedup e filtra: só apaga login se NÃO tiver vínculo em outras unidades fora desse condomínio.
+    const removableMoradorAuthIds: string[] = [];
+    const uniqueAcessoAuthIds = Array.from(new Set(acessosAuthIds));
+    for (const authUserId of uniqueAcessoAuthIds) {
+        let hasOutroVinculo = false;
+        for (let i = 0; i < unidadeIds.length; i += 500) {
+            const chunk = unidadeIds.slice(i, i + 500);
+            const { count } = await supabase
+                .from('unidade_acessos')
+                .select('id', { count: 'exact', head: true })
+                .eq('auth_user_id', authUserId)
+                .not('unidade_id', 'in', `(${chunk.join(',')})`);
+            if ((count || 0) > 0) {
+                hasOutroVinculo = true;
+                break;
+            }
+        }
+        if (!hasOutroVinculo) removableMoradorAuthIds.push(authUserId);
     }
 
     const { data: sindicosRaw } = await supabase
@@ -157,7 +178,7 @@ export async function deleteCondominio(condominioId: string) {
         }
     }
 
-    const authIdsToDelete = [...moradoresAuthIds, ...removableSindicoAuthIds];
+    const authIdsToDelete = [...removableMoradorAuthIds, ...removableSindicoAuthIds];
     if (authIdsToDelete.length > 0) {
         try {
             const { failedIds } = await deleteAuthUsersByIds(authIdsToDelete);

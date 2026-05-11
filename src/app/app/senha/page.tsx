@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { FaArrowLeft } from 'react-icons/fa';
 import SenhaPageClient from '@/components/morador/SenhaPageClient';
 import { createClient } from '@/lib/supabase/server';
-import { resolveMoradorPortalContext } from '@/lib/adminPreview';
+import { resolveMoradorPortalContextPlural } from '@/lib/adminPreview';
 
 export default async function SenhaPage() {
     const supabase = await createClient();
@@ -15,12 +15,12 @@ export default async function SenhaPage() {
         redirect('/login');
     }
 
-    const resolvedContext = await resolveMoradorPortalContext(supabase as never, user.id);
-    if (!resolvedContext?.context) {
+    const ctx = await resolveMoradorPortalContextPlural(supabase as never, user.id);
+    if (!ctx || ctx.vinculos.length === 0) {
         redirect('/app');
     }
 
-    if (resolvedContext.mode === 'admin_preview') {
+    if (ctx.mode === 'admin_preview') {
         return (
             <div className="max-w-lg mx-auto space-y-6">
                 <div className="flex items-center gap-4">

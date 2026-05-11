@@ -46,15 +46,6 @@ export interface LeituraMensal {
   criadoPorMorador?: boolean;
 }
 
-/** @deprecated Use UnidadeAcesso. Será removido após cleanup do refactor multi-vínculo. */
-export interface MoradorData {
-  id: string;
-  authUserId: string;
-  nome: string;
-  unidadeId: string;
-  unidade?: Unidade;
-}
-
 export interface Service {
   icon: IconType;
   title: string;

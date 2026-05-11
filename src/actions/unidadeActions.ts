@@ -157,17 +157,39 @@ export async function deleteUnidade(unidadeId: string, returnPath?: string) {
         redirect('/admin/unidades?error=Unidade%20n%C3%A3o%20encontrada');
     }
 
-    const { data: morador } = await supabase
-        .from('moradores')
+    // Levanta auth_user_ids vinculados a essa unidade.
+    const { data: acessosNaUnidade } = await supabase
+        .from('unidade_acessos')
         .select('auth_user_id')
-        .eq('unidade_id', unidadeId)
-        .maybeSingle();
+        .eq('unidade_id', unidadeId);
 
-    if (morador?.auth_user_id) {
+    const authIdsNaUnidade = (acessosNaUnidade ?? [])
+        .map((a) => a.auth_user_id as string | null)
+        .filter((id): id is string => Boolean(id));
+
+    // Pra cada auth user, só remove o login se ele NÃO tiver vínculo em outras unidades.
+    const orphanAuthIds: string[] = [];
+    if (authIdsNaUnidade.length > 0) {
+        const { data: outrosVinculos } = await supabase
+            .from('unidade_acessos')
+            .select('auth_user_id')
+            .in('auth_user_id', authIdsNaUnidade)
+            .neq('unidade_id', unidadeId);
+
+        const idsComOutrosVinculos = new Set(
+            (outrosVinculos ?? []).map((v) => v.auth_user_id as string)
+        );
+
+        for (const id of authIdsNaUnidade) {
+            if (!idsComOutrosVinculos.has(id)) orphanAuthIds.push(id);
+        }
+    }
+
+    if (orphanAuthIds.length > 0) {
         try {
-            const { failedIds } = await deleteAuthUsersByIds([morador.auth_user_id]);
+            const { failedIds } = await deleteAuthUsersByIds(orphanAuthIds);
             if (failedIds.length > 0) {
-                redirect('/admin/unidades?error=N%C3%A3o%20foi%20poss%C3%ADvel%20remover%20o%20login%20vinculado');
+                redirect('/admin/unidades?error=N%C3%A3o%20foi%20poss%C3%ADvel%20remover%20o(s)%20login(s)%20vinculado(s)');
             }
         } catch {
             redirect('/admin/unidades?error=SUPABASE_SERVICE_ROLE_KEY%20n%C3%A3o%20configurada%20para%20exclus%C3%A3o%20de%20login');

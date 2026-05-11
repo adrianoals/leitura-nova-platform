@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
-import { getMoradorContextByAuthUserId, getMoradorContextByUnidadeId, type MoradorContext } from '@/lib/morador';
+import { getMoradorContextByUnidadeId, type MoradorContext } from '@/lib/morador';
 
 export const ADMIN_PREVIEW_COOKIE = 'ln_admin_morador_preview';
 const ADMIN_PREVIEW_TTL_SECONDS = 60 * 60;
@@ -100,40 +100,6 @@ export async function getAdminMoradorPreviewPayload() {
     const token = cookieStore.get(ADMIN_PREVIEW_COOKIE)?.value;
     if (!token) return null;
     return decodePayload(token);
-}
-
-/**
- * @deprecated Usar resolveMoradorPortalContextPlural ou resolveUnidadeContextById
- * para suporte a multi-vínculo. Esta função retorna apenas o primeiro vínculo,
- * mantida para backward-compat com páginas legadas /app/* (redirects).
- */
-export async function resolveMoradorPortalContext(
-    supabase: {
-        from: (table: string) => unknown;
-    },
-    authUserId: string
-): Promise<ResolvedMoradorPortalContext | null> {
-    const previewPayload = await getAdminMoradorPreviewPayload();
-    if (previewPayload && previewPayload.adminAuthUserId === authUserId) {
-        const isAdmin = await isAdminAuthUser(supabase as never, authUserId);
-        if (isAdmin) {
-            const previewContext = await getMoradorContextByUnidadeId(supabase as never, previewPayload.unidadeId);
-            if (previewContext) {
-                return {
-                    mode: 'admin_preview',
-                    context: previewContext,
-                };
-            }
-        }
-    }
-
-    const moradorContext = await getMoradorContextByAuthUserId(supabase as never, authUserId);
-    if (!moradorContext) return null;
-
-    return {
-        mode: 'morador',
-        context: moradorContext,
-    };
 }
 
 export type MoradorPortalContextPlural = {
