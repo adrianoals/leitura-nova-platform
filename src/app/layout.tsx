@@ -55,7 +55,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-br">
+    <html lang="pt-br" className="scroll-smooth">
       <body className="antialiased">
         {children}
         <WhatsAppButton />

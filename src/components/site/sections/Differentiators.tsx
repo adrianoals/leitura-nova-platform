@@ -19,7 +19,7 @@ const delayClasses = [
 
 export default function Differentiators() {
   return (
-    <section id="diferenciais" className="py-24 sm:py-32 relative overflow-hidden bg-gradient-to-b from-white to-slate-50/80">
+    <section id="diferenciais" className="scroll-mt-20 py-24 sm:py-32 relative overflow-hidden bg-gradient-to-b from-white to-slate-50/80">
       {/* Decorative background */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-vscode-blue/5 rounded-full blur-3xl" />

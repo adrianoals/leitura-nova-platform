@@ -1,10 +1,9 @@
-import Image from 'next/image';
 import Button from '@/components/shared/ui/Button';
 
 export default function Hero() {
   return (
     <section
-      className="min-h-screen flex flex-col justify-center items-center text-center px-4 relative overflow-hidden"
+      className="min-h-screen flex flex-col justify-center items-center text-center px-4 pt-20 md:pt-24 relative overflow-hidden"
       style={{
         backgroundImage: "url('/images/hero-bg.jpg')",
         backgroundSize: 'cover',
@@ -20,15 +19,6 @@ export default function Hero() {
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent z-30"></div>
       {/* Conteúdo */}
       <div className="relative z-40 max-w-5xl mx-auto">
-        <Image
-          src="/images/logoleituranova-hero.jpg"
-          alt="Leitura Nova Logo"
-          width={160}
-          height={80}
-          className="mx-auto mb-6 w-40 h-auto"
-          draggable={false}
-          priority
-        />
         <h1 className="text-4xl sm:text-6xl font-bold mb-6 leading-tight animate-fade-in text-white drop-shadow-lg">
           Gestão Inteligente de Água e Gás para o Seu Condomínio
         </h1>
@@ -42,4 +32,4 @@ export default function Hero() {
       </div>
     </section>
   );
-} 
+}

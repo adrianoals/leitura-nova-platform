@@ -5,6 +5,7 @@ import Differentiators from '@/components/site/sections/Differentiators';
 import Testimonials from '@/components/site/sections/Testimonials';
 import Contact from '@/components/site/sections/Contact';
 import Footer from '@/components/site/layout/Footer';
+import Header from '@/components/site/layout/Header';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://leituranova.com.br';
 
@@ -35,6 +36,7 @@ export default function Home() {
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
             <main className="font-sans text-gray-900">
+                <Header />
                 <Hero />
                 <About />
                 <Services />
