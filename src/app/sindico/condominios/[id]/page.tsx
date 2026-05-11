@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { FaArrowLeft, FaBuilding, FaCalendarAlt, FaClipboardList, FaDoorOpen, FaFire, FaSearch, FaTint, FaUsers } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
-import { firstOfRelation } from '@/lib/relations';
 import { formatData, formatMes, formatValor } from '@/lib/morador';
 import FilterApplyButton from '@/components/admin/FilterApplyButton';
 
@@ -21,7 +20,7 @@ type UnidadeRow = {
     id: string;
     bloco: string | null;
     apartamento: string | null;
-    moradores: { id: string; nome: string | null }[] | null;
+    acessos: { id: string; ativo: boolean; pessoa: { nome: string | null } | { nome: string | null }[] | null }[] | null;
 };
 
 type LeituraRow = {
@@ -102,9 +101,12 @@ export default async function SindicoCondominioPage({
                 id,
                 bloco,
                 apartamento,
-                moradores(
+                acessos:unidade_acessos(
                     id,
-                    nome
+                    ativo,
+                    pessoa:pessoas(
+                        nome
+                    )
                 )
             `)
             .eq('condominio_id', condominioId)
@@ -118,8 +120,7 @@ export default async function SindicoCondominioPage({
     const unidadesBase = (unidadesRaw || []) as UnidadeRow[];
     const unidades = unidadesBase.filter((u) => {
         if (!termoBusca) return true;
-        const moradorNome = firstOfRelation(u.moradores)?.nome || '';
-        const texto = `${formatUnidade(u.bloco, u.apartamento)} ${moradorNome}`.toLowerCase();
+        const texto = `${formatUnidade(u.bloco, u.apartamento)}`.toLowerCase();
         return texto.includes(termoBusca);
     });
     const unidadeIds = unidades.map((u) => u.id);
@@ -184,7 +185,7 @@ export default async function SindicoCondominioPage({
                     <p className="text-xs text-slate-500">Unidades (filtro)</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
-                    <p className="text-2xl font-bold text-slate-900">{unidades.filter((u) => Boolean(firstOfRelation(u.moradores))).length}</p>
+                    <p className="text-2xl font-bold text-slate-900">{unidades.filter((u) => (u.acessos ?? []).some((a: { ativo: boolean }) => a.ativo)).length}</p>
                     <p className="text-xs text-slate-500">Com morador</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
@@ -241,15 +242,21 @@ export default async function SindicoCondominioPage({
                     <thead>
                         <tr className="border-b border-slate-100 bg-white">
                             <th className="text-left text-xs font-semibold text-slate-500 uppercase px-6 py-3">Unidade</th>
-                            <th className="text-left text-xs font-semibold text-slate-500 uppercase px-4 py-3">Proprietário</th>
+                            <th className="text-left text-xs font-semibold text-slate-500 uppercase px-4 py-3">Acessos</th>
                             <th className="text-center text-xs font-semibold text-slate-500 uppercase px-4 py-3">Status</th>
                             <th className="text-center text-xs font-semibold text-slate-500 uppercase px-4 py-3">Leituras mês</th>
                         </tr>
                     </thead>
                     <tbody>
                         {unidades.map((u) => {
-                            const morador = firstOfRelation(u.moradores);
-                            const hasMorador = Boolean(morador);
+                            const acessosAtivos = (u.acessos ?? []).filter((a: { ativo: boolean }) => a.ativo);
+                            const nomes = acessosAtivos
+                                .map((a: { pessoa: { nome: string | null } | { nome: string | null }[] | null }) =>
+                                    Array.isArray(a.pessoa) ? a.pessoa[0]?.nome : a.pessoa?.nome
+                                )
+                                .filter(Boolean)
+                                .join(', ');
+                            const hasAtivo = acessosAtivos.length > 0;
                             return (
                                 <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50/50">
                                     <td className="px-6 py-4 text-sm font-medium text-slate-900">
@@ -258,10 +265,19 @@ export default async function SindicoCondominioPage({
                                             {formatUnidade(u.bloco, u.apartamento)}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-4 text-sm text-slate-700">{morador?.nome || 'Não configurado'}</td>
+                                    <td className="px-4 py-4 text-sm text-slate-700">
+                                        {acessosAtivos.length === 0 ? (
+                                            <span className="text-slate-400 italic">Não configurado</span>
+                                        ) : (
+                                            <div title={nomes}>
+                                                <span className="font-medium">{acessosAtivos.length} ativo{acessosAtivos.length !== 1 ? 's' : ''}</span>
+                                                {nomes && <span className="text-xs text-slate-500 block truncate max-w-xs">{nomes}</span>}
+                                            </div>
+                                        )}
+                                    </td>
                                     <td className="text-center px-4 py-4">
-                                        <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${hasMorador ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                                            {hasMorador ? 'Ativo' : 'Pendente'}
+                                        <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${hasAtivo ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                            {hasAtivo ? 'Ativo' : 'Pendente'}
                                         </span>
                                     </td>
                                     <td className="text-center px-4 py-4 text-sm text-slate-700">

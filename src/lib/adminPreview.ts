@@ -102,6 +102,11 @@ export async function getAdminMoradorPreviewPayload() {
     return decodePayload(token);
 }
 
+/**
+ * @deprecated Usar resolveMoradorPortalContextPlural ou resolveUnidadeContextById
+ * para suporte a multi-vínculo. Esta função retorna apenas o primeiro vínculo,
+ * mantida para backward-compat com páginas legadas /app/* (redirects).
+ */
 export async function resolveMoradorPortalContext(
     supabase: {
         from: (table: string) => unknown;
@@ -129,4 +134,178 @@ export async function resolveMoradorPortalContext(
         mode: 'morador',
         context: moradorContext,
     };
+}
+
+export type MoradorPortalContextPlural = {
+    mode: 'morador' | 'admin_preview';
+    vinculos: Array<{
+        unidadeId: string;
+        unidade: { id: string; bloco: string; apartamento: string };
+        condominio: {
+            id: string;
+            nome: string;
+            temAgua: boolean;
+            temAguaQuente: boolean;
+            temGas: boolean;
+            envioLeituraMoradorHabilitado: boolean;
+        };
+        tipo: 'proprietario' | 'locatario' | null;
+    }>;
+};
+
+export async function resolveMoradorPortalContextPlural(
+    supabase: { from: (table: string) => unknown },
+    authUserId: string,
+): Promise<MoradorPortalContextPlural | null> {
+    // Caso admin_preview: redireciona para o caso single-context (compat)
+    const previewPayload = await getAdminMoradorPreviewPayload();
+    if (previewPayload && previewPayload.adminAuthUserId === authUserId) {
+        const isAdmin = await isAdminAuthUser(supabase as never, authUserId);
+        if (isAdmin) {
+            const previewContext = await getMoradorContextByUnidadeId(supabase as never, previewPayload.unidadeId);
+            if (previewContext) {
+                return {
+                    mode: 'admin_preview',
+                    vinculos: [{
+                        unidadeId: previewContext.unidadeId,
+                        unidade: {
+                            id: previewContext.unidadeId,
+                            bloco: previewContext.bloco ?? '',
+                            apartamento: previewContext.apartamento ?? '',
+                        },
+                        condominio: {
+                            id: previewContext.condominioId,
+                            nome: previewContext.condominioNome,
+                            temAgua: previewContext.temAgua,
+                            temAguaQuente: previewContext.temAguaQuente,
+                            temGas: previewContext.temGas,
+                            envioLeituraMoradorHabilitado: previewContext.envioLeituraMoradorHabilitado,
+                        },
+                        tipo: null,
+                    }],
+                };
+            }
+        }
+    }
+
+    // Caso normal: buscar todos os vínculos ativos do user
+    const acessosResult = await (supabase
+        .from('unidade_acessos') as {
+            select: (q: string) => {
+                eq: (col: string, val: unknown) => {
+                    eq: (col: string, val: unknown) => Promise<{ data: unknown[] | null; error: unknown }>
+                }
+            }
+        })
+        .select(`
+            id,
+            unidade_id,
+            tipo,
+            unidade:unidades (
+                id,
+                bloco,
+                apartamento,
+                condominio:condominios (
+                    id,
+                    nome,
+                    tem_agua,
+                    tem_agua_quente,
+                    tem_gas,
+                    envio_leitura_morador_habilitado
+                )
+            )
+        `)
+        .eq('auth_user_id', authUserId)
+        .eq('ativo', true);
+
+    const { data: acessos, error } = acessosResult;
+    if (error || !acessos || acessos.length === 0) return null;
+
+    type AcessoRow = {
+        unidade_id: string;
+        tipo: 'proprietario' | 'locatario' | null;
+        unidade: {
+            id: string;
+            bloco: string;
+            apartamento: string;
+            condominio: {
+                id: string;
+                nome: string;
+                tem_agua: boolean;
+                tem_agua_quente: boolean;
+                tem_gas: boolean;
+                envio_leitura_morador_habilitado: boolean;
+            } | {
+                id: string;
+                nome: string;
+                tem_agua: boolean;
+                tem_agua_quente: boolean;
+                tem_gas: boolean;
+                envio_leitura_morador_habilitado: boolean;
+            }[];
+        } | {
+            id: string;
+            bloco: string;
+            apartamento: string;
+            condominio: {
+                id: string;
+                nome: string;
+                tem_agua: boolean;
+                tem_agua_quente: boolean;
+                tem_gas: boolean;
+                envio_leitura_morador_habilitado: boolean;
+            } | {
+                id: string;
+                nome: string;
+                tem_agua: boolean;
+                tem_agua_quente: boolean;
+                tem_gas: boolean;
+                envio_leitura_morador_habilitado: boolean;
+            }[];
+        }[];
+    };
+
+    const flat = (a: AcessoRow) => {
+        const u = Array.isArray(a.unidade) ? a.unidade[0] : a.unidade;
+        if (!u) return null;
+        const c = Array.isArray(u.condominio) ? u.condominio[0] : u.condominio;
+        if (!c) return null;
+        return {
+            unidadeId: a.unidade_id,
+            unidade: { id: u.id, bloco: u.bloco, apartamento: u.apartamento },
+            condominio: {
+                id: c.id,
+                nome: c.nome,
+                temAgua: c.tem_agua,
+                temAguaQuente: c.tem_agua_quente,
+                temGas: c.tem_gas,
+                envioLeituraMoradorHabilitado: c.envio_leitura_morador_habilitado,
+            },
+            tipo: a.tipo,
+        };
+    };
+
+    const vinculos = (acessos as AcessoRow[])
+        .map(flat)
+        .filter((v): v is NonNullable<ReturnType<typeof flat>> => v !== null);
+
+    if (vinculos.length === 0) return null;
+
+    return { mode: 'morador', vinculos };
+}
+
+/**
+ * Resolve o contexto de UMA unidade específica para o user logado.
+ * Usado nas páginas /app/u/[unidadeId]/* — verifica que o user tem
+ * vínculo ativo com essa unidade. Retorna null se não tiver acesso
+ * (a página deve chamar notFound()).
+ */
+export async function resolveUnidadeContextById(
+    supabase: { from: (table: string) => unknown },
+    authUserId: string,
+    unidadeId: string,
+): Promise<MoradorPortalContextPlural['vinculos'][number] | null> {
+    const ctx = await resolveMoradorPortalContextPlural(supabase, authUserId);
+    if (!ctx) return null;
+    return ctx.vinculos.find((v) => v.unidadeId === unidadeId) ?? null;
 }

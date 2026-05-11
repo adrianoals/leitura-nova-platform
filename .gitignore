@@ -45,3 +45,6 @@ next-env.d.ts
 
 # MCP config — contains personal access tokens
 .mcp.json
+
+# Claude local settings (per-machine permissions)
+.claude/settings.local.json

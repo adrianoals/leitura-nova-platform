@@ -2,9 +2,7 @@ import Link from 'next/link';
 import { FaSearch, FaDoorOpen, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import FilterApplyButton from '@/components/admin/FilterApplyButton';
-import DeleteMoradorButton from '@/components/admin/DeleteMoradorButton';
 import ActionToast from '@/components/admin/ActionToast';
-import { firstOfRelation } from '@/lib/relations';
 
 type SearchParams = Promise<{
     condominio_id?: string;
@@ -20,7 +18,7 @@ type UnidadeAccessRow = {
     apartamento: string;
     condominio_id: string;
     condominio: { id: string; nome: string } | { id: string; nome: string }[] | null;
-    moradores: { id: string; nome: string | null } | { id: string; nome: string | null }[] | null;
+    acessos: { id: string; ativo: boolean }[] | null;
 };
 
 type CondominioOption = {
@@ -60,9 +58,9 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
                         id,
                         nome
                     ),
-                    moradores (
+                    acessos:unidade_acessos (
                         id,
-                        nome
+                        ativo
                     )
                 `)
                 .eq('condominio_id', condominioId)
@@ -77,25 +75,26 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
     const unidades = hasCondominioSelecionado
         ? ((unidadesRaw || []) as UnidadeAccessRow[]).filter((u) => {
             if (!termoBusca) return true;
-            const primeiroMorador = firstOfRelation(u.moradores);
-            const texto = `${u.bloco} ${u.apartamento} ${primeiroMorador?.nome || ''}`.toLowerCase();
+            const texto = `${u.bloco} ${u.apartamento}`.toLowerCase();
             return texto.includes(termoBusca);
         })
         : [];
 
     const totalUnidades = unidades.length;
-    const totalComMorador = unidades.filter((u) => Boolean(firstOfRelation(u.moradores))).length;
+    const totalComMorador = unidades.filter((u) =>
+        (u.acessos ?? []).some((a: { ativo: boolean }) => a.ativo)
+    ).length;
     const filtroFormKey = `${condominioId}|${params.q || ''}`;
 
     return (
         <div className="max-w-5xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Moradores por Unidade</h1>
+                    <h1 className="text-2xl font-bold text-slate-900">Usuários por Unidade</h1>
                     <p className="text-slate-500 text-sm">
                         {hasCondominioSelecionado
-                            ? `${totalComMorador} de ${totalUnidades} unidades com morador configurado em ${condominioSelecionado?.nome}`
-                            : 'Selecione um condomínio para visualizar os moradores'}
+                            ? `${totalComMorador} de ${totalUnidades} unidades com acesso ativo em ${condominioSelecionado?.nome}`
+                            : 'Selecione um condomínio para visualizar os usuários'}
                     </p>
                 </div>
             </div>
@@ -119,14 +118,14 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
                     </div>
 
                     <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-700">Buscar unidade/proprietário</label>
+                        <label className="block text-sm font-medium text-slate-700">Buscar unidade</label>
                         <div className="relative">
                             <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                             <input
                                 type="text"
                                 name="q"
                                 defaultValue={params.q || ''}
-                                placeholder="Bloco, apto, proprietário..."
+                                placeholder="Bloco, apto..."
                                 className="w-full rounded-xl border border-slate-300 bg-white pl-11 pr-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-vscode-blue/20 focus:border-vscode-blue transition-all"
                             />
                         </div>
@@ -143,7 +142,7 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
                 </div>
             </form>
 
-            {deleted && <ActionToast message="Morador excluído com sucesso." />}
+            {deleted && <ActionToast message="Vínculo excluído com sucesso." />}
 
             {errorMessage && (
                 <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -153,7 +152,7 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
 
             {!hasCondominioSelecionado ? (
                 <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-600">
-                    Selecione um condomínio para visualizar os moradores.
+                    Selecione um condomínio para visualizar os usuários.
                 </div>
             ) : (
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -162,7 +161,7 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
                             <tr className="border-b border-slate-100 bg-slate-50">
                                 <th className="text-left text-xs font-semibold text-slate-500 uppercase px-6 py-3">Unidade</th>
                                 <th className="text-left text-xs font-semibold text-slate-500 uppercase px-4 py-3 hidden md:table-cell">Condomínio</th>
-                                <th className="text-left text-xs font-semibold text-slate-500 uppercase px-4 py-3">Proprietário</th>
+                                <th className="text-left text-xs font-semibold text-slate-500 uppercase px-4 py-3">Acessos</th>
                                 <th className="text-center text-xs font-semibold text-slate-500 uppercase px-4 py-3">Status</th>
                                 <th className="text-right text-xs font-semibold text-slate-500 uppercase px-6 py-3">Ação</th>
                             </tr>
@@ -170,8 +169,11 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
                         <tbody>
                             {unidades.map((u) => {
                                 const condNome = getCondominioNome(u.condominio);
-                                const proprietario = firstOfRelation(u.moradores);
-                                const hasAccess = Boolean(proprietario);
+                                const acessos = (u.acessos ?? []) as Array<{ id: string; ativo: boolean }>;
+                                const ativos = acessos.filter((a) => a.ativo).length;
+                                const total = acessos.length;
+                                const desabilitados = total - ativos;
+                                const hasAtivo = ativos > 0;
 
                                 return (
                                     <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
@@ -185,10 +187,17 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
                                             {condNome}
                                         </td>
                                         <td className="px-4 py-4 text-sm text-slate-700">
-                                            {proprietario?.nome || <span className="italic text-slate-400">Não configurado</span>}
+                                            {total === 0 ? (
+                                                <span className="text-slate-400 italic">Nenhum acesso</span>
+                                            ) : (
+                                                <span>
+                                                    {ativos} ativo{ativos !== 1 ? 's' : ''}
+                                                    {desabilitados > 0 && ` (${desabilitados} desabilitado${desabilitados !== 1 ? 's' : ''})`}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="text-center px-4 py-4">
-                                            {hasAccess ? (
+                                            {hasAtivo ? (
                                                 <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
                                                     <FaCheckCircle className="h-3 w-3" /> Ativo
                                                 </span>
@@ -199,18 +208,9 @@ export default async function MoradoresPage({ searchParams }: { searchParams: Se
                                             )}
                                         </td>
                                         <td className="text-right px-6 py-4">
-                                            <div className="flex items-center justify-end gap-3">
-                                                <Link href={`/admin/moradores/${u.id}`} className="text-sm text-vscode-blue hover:text-vscode-blue-dark font-medium">
-                                                    Gerenciar
-                                                </Link>
-                                                {proprietario && (
-                                                    <DeleteMoradorButton
-                                                        moradorId={proprietario.id}
-                                                        returnPath={`/admin/moradores?condominio_id=${condominioId}`}
-                                                        compact
-                                                    />
-                                                )}
-                                            </div>
+                                            <Link href={`/admin/moradores/${u.id}`} className="text-sm text-vscode-blue hover:text-vscode-blue-dark font-medium">
+                                                Gerenciar
+                                            </Link>
                                         </td>
                                     </tr>
                                 );

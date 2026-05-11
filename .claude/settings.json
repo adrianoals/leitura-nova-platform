@@ -11,8 +11,7 @@
       "WebSearch(*)",
       "NotebookEdit(*)",
       "Task(*)",
-      "mcp__ide__getDiagnostics(*)",
-      "mcp__ide__executeCode(*)"
+      "mcp__ide__*"
     ],
     "deny": []
   }

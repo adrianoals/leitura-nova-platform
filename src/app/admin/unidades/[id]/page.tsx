@@ -1,19 +1,25 @@
 import Link from 'next/link';
-import { FaArrowLeft, FaBuilding, FaSave } from 'react-icons/fa';
+import { FaArrowLeft, FaBuilding, FaSave, FaUserCog } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import { updateUnidade } from '@/actions/unidadeActions';
 import DeleteUnidadeButton from '@/components/admin/DeleteUnidadeButton';
-import { firstOfRelation } from '@/lib/relations';
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ saved?: string; error?: string }>;
+
+type AcessoRow = {
+    id: string;
+    tipo: 'proprietario' | 'locatario' | null;
+    ativo: boolean;
+    pessoa: { id: string; nome: string | null } | null;
+};
 
 type UnidadeDetail = {
     id: string;
     bloco: string;
     apartamento: string;
     condominio: { id: string; nome: string } | { id: string; nome: string }[] | null;
-    moradores: { id: string; nome: string | null } | { id: string; nome: string | null }[] | null;
+    unidade_acessos: AcessoRow[] | null;
 };
 
 function getCondominioNome(condominio: UnidadeDetail['condominio']) {
@@ -49,9 +55,14 @@ export default async function UnidadeDetailPage({
                 id,
                 nome
             ),
-            moradores (
+            unidade_acessos (
                 id,
-                nome
+                tipo,
+                ativo,
+                pessoa:pessoas (
+                    id,
+                    nome
+                )
             )
         `)
         .eq('id', id)
@@ -71,7 +82,7 @@ export default async function UnidadeDetailPage({
     const condominioNome = getCondominioNome(unidade.condominio);
     const saved = query.saved === '1';
     const error = query.error;
-    const morador = firstOfRelation(unidade.moradores);
+    const acessos = unidade.unidade_acessos || [];
     const condominioId = getCondominioId(unidade.condominio);
 
     return (
@@ -114,25 +125,42 @@ export default async function UnidadeDetailPage({
                     />
                 </div>
 
-                {/* Morador vinculado à unidade */}
+                {/* Usuários vinculados à unidade */}
                 <div className="space-y-3 pt-2">
-                    <p className="text-sm font-medium text-slate-700">Morador</p>
-                    {morador ? (
-                        <div className="rounded-xl border border-slate-200 p-3 bg-slate-50">
-                            <p className="text-sm text-slate-800">
-                                {morador.nome || 'Proprietário sem nome'}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                                Esta unidade já possui morador cadastrado.
-                            </p>
-                        </div>
-                    ) : (
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-slate-700">Usuários ({acessos.length})</p>
+                        <Link
+                            href={`/admin/moradores/${unidade.id}`}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-vscode-blue hover:text-vscode-blue-dark"
+                        >
+                            <FaUserCog className="h-3 w-3" /> Gerenciar
+                        </Link>
+                    </div>
+                    {acessos.length === 0 ? (
                         <div className="rounded-xl border border-amber-200 p-3 bg-amber-50">
-                            <p className="text-sm text-amber-800">Unidade sem morador cadastrado.</p>
+                            <p className="text-sm text-amber-800">Nenhum usuário vinculado.</p>
                             <Link href={`/admin/moradores/${unidade.id}`} className="text-xs text-amber-700 underline">
-                                Criar morador para esta unidade
+                                Adicionar usuário
                             </Link>
                         </div>
+                    ) : (
+                        <ul className="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+                            {acessos.map((a) => (
+                                <li key={a.id} className="flex items-center justify-between px-3 py-2 bg-white">
+                                    <div className="min-w-0">
+                                        <p className="text-sm text-slate-800 truncate">
+                                            {a.pessoa?.nome || <span className="italic text-slate-400">Sem nome</span>}
+                                        </p>
+                                        <p className="text-xs text-slate-500">
+                                            {a.tipo === 'proprietario' ? 'Proprietário' : a.tipo === 'locatario' ? 'Locatário' : 'Sem rótulo'}
+                                        </p>
+                                    </div>
+                                    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${a.ativo ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                                        {a.ativo ? 'Ativo' : 'Desabilitado'}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
                     )}
                 </div>
 

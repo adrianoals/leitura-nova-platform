@@ -6,15 +6,17 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { resolveMoradorPortalContext } from '@/lib/adminPreview';
+import { resolveUnidadeContextById } from '@/lib/adminPreview';
 import {
     getDataHojeIso,
     getMesAtual,
     getTiposPermitidos,
     type TipoLeitura,
+    type MoradorContext,
 } from '@/lib/morador';
 
 const enviarLeituraSchema = z.object({
+    unidade_id: z.string().uuid('Unidade inválida'),
     tipo: z.enum(['agua', 'agua_fria', 'agua_quente', 'gas']),
     medicao: z.coerce.number().positive('Medição deve ser maior que zero'),
 });
@@ -29,7 +31,7 @@ function getExtFromFileName(fileName: string) {
     return ext.toLowerCase();
 }
 
-async function ensureMorador() {
+async function ensureMoradorOnUnidade(unidadeId: string) {
     const supabase = await createClient();
     const {
         data: { user },
@@ -39,41 +41,50 @@ async function ensureMorador() {
         redirect('/login');
     }
 
-    const resolvedContext = await resolveMoradorPortalContext(supabase as never, user.id);
-    const context = resolvedContext?.context || null;
+    const vinculo = await resolveUnidadeContextById(supabase as never, user.id, unidadeId);
 
-    if (!context) {
+    if (!vinculo) {
+        // Nenhum vínculo ativo com esta unidade — gateway decide o que fazer
         redirect('/app');
     }
 
-    if (resolvedContext?.mode === 'admin_preview') {
-        redirect('/app/enviar-leitura?error=' + encodeMessage('Modo visualização ativo. Envio de leitura está bloqueado.'));
-    }
-
-    return { supabase, user, context };
+    return { supabase, user, vinculo };
 }
 
 export async function enviarLeituraMorador(formData: FormData) {
-    const { supabase, user, context } = await ensureMorador();
-
-    if (!context.envioLeituraMoradorHabilitado) {
-        redirect('/app/enviar-leitura?error=' + encodeMessage('Envio de leitura não está habilitado para sua unidade'));
-    }
+    const unidadeIdRaw = String(formData.get('unidade_id') || '');
 
     const parsed = enviarLeituraSchema.safeParse({
+        unidade_id: formData.get('unidade_id'),
         tipo: formData.get('tipo'),
         medicao: formData.get('medicao'),
     });
 
     if (!parsed.success) {
-        redirect('/app/enviar-leitura?error=' + encodeMessage('Dados inválidos para envio'));
+        const errPath = unidadeIdRaw
+            ? `/app/u/${unidadeIdRaw}/enviar-leitura`
+            : '/app';
+        redirect(`${errPath}?error=${encodeMessage('Dados inválidos para envio')}`);
+    }
+
+    const { supabase, user, vinculo } = await ensureMoradorOnUnidade(parsed.data.unidade_id);
+    const errPath = `/app/u/${parsed.data.unidade_id}/enviar-leitura`;
+
+    if (!vinculo.condominio.envioLeituraMoradorHabilitado) {
+        redirect(`${errPath}?error=${encodeMessage('Envio de leitura não está habilitado para sua unidade')}`);
     }
 
     const tipo = parsed.data.tipo as TipoLeitura;
-    const tiposPermitidos = getTiposPermitidos(context);
+
+    // getTiposPermitidos espera shape estrutural compatível com MoradorContext
+    const tiposPermitidos = getTiposPermitidos({
+        temAgua: vinculo.condominio.temAgua,
+        temAguaQuente: vinculo.condominio.temAguaQuente,
+        temGas: vinculo.condominio.temGas,
+    } as Pick<MoradorContext, 'temAgua' | 'temAguaQuente' | 'temGas'> as MoradorContext);
 
     if (!tiposPermitidos.includes(tipo)) {
-        redirect('/app/enviar-leitura?error=' + encodeMessage('Tipo de leitura não permitido para sua unidade'));
+        redirect(`${errPath}?error=${encodeMessage('Tipo de leitura não permitido para sua unidade')}`);
     }
 
     const fotos = formData
@@ -81,7 +92,7 @@ export async function enviarLeituraMorador(formData: FormData) {
         .filter((value): value is File => value instanceof File && value.size > 0);
 
     if (fotos.length === 0) {
-        redirect('/app/enviar-leitura?error=' + encodeMessage('Envie ao menos uma foto do medidor'));
+        redirect(`${errPath}?error=${encodeMessage('Envie ao menos uma foto do medidor')}`);
     }
 
     const mesReferencia = getMesAtual();
@@ -90,18 +101,18 @@ export async function enviarLeituraMorador(formData: FormData) {
     const { data: fechamento } = await supabase
         .from('fechamentos_mensais')
         .select('fechado')
-        .eq('condominio_id', context.condominioId)
+        .eq('condominio_id', vinculo.condominio.id)
         .eq('mes_referencia', mesReferencia)
         .maybeSingle();
 
     if (fechamento?.fechado) {
-        redirect('/app/enviar-leitura?error=' + encodeMessage('Mês já fechado. Não é possível enviar leitura'));
+        redirect(`${errPath}?error=${encodeMessage('Mês já fechado. Não é possível enviar leitura')}`);
     }
 
     const { data: leitura, error: leituraError } = await supabase
         .from('leituras_mensais')
         .insert({
-            unidade_id: context.unidadeId,
+            unidade_id: vinculo.unidadeId,
             tipo,
             mes_referencia: mesReferencia,
             data_leitura: dataLeitura,
@@ -117,15 +128,15 @@ export async function enviarLeituraMorador(formData: FormData) {
         const isDuplicate = leituraError?.message?.toLowerCase().includes('duplicate')
             || leituraError?.code === '23505';
         if (isDuplicate) {
-            redirect('/app/enviar-leitura?error=' + encodeMessage('Leitura deste tipo para o mês atual já foi enviada'));
+            redirect(`${errPath}?error=${encodeMessage('Leitura deste tipo para o mês atual já foi enviada')}`);
         }
-        redirect('/app/enviar-leitura?error=' + encodeMessage('Não foi possível salvar a leitura'));
+        redirect(`${errPath}?error=${encodeMessage('Não foi possível salvar a leitura')}`);
     }
 
     for (const foto of fotos) {
         const ext = getExtFromFileName(foto.name);
         const fileName = `${Date.now()}-${randomUUID()}.${ext}`;
-        const storagePath = `${context.condominioId}/${context.unidadeId}/${mesReferencia}/${tipo}/${fileName}`;
+        const storagePath = `${vinculo.condominio.id}/${vinculo.unidadeId}/${mesReferencia}/${tipo}/${fileName}`;
 
         const arrayBuffer = await foto.arrayBuffer();
         const fileBuffer = Buffer.from(arrayBuffer);
@@ -138,7 +149,7 @@ export async function enviarLeituraMorador(formData: FormData) {
             });
 
         if (uploadError) {
-            redirect('/app/enviar-leitura?error=' + encodeMessage('Erro ao enviar uma das fotos'));
+            redirect(`${errPath}?error=${encodeMessage('Erro ao enviar uma das fotos')}`);
         }
 
         const { error: fotoError } = await supabase
@@ -149,15 +160,15 @@ export async function enviarLeituraMorador(formData: FormData) {
             });
 
         if (fotoError) {
-            redirect('/app/enviar-leitura?error=' + encodeMessage('Leitura salva, mas houve erro ao vincular foto'));
+            redirect(`${errPath}?error=${encodeMessage('Leitura salva, mas houve erro ao vincular foto')}`);
         }
     }
 
-    revalidatePath('/app');
-    revalidatePath('/app/leituras');
-    revalidatePath(`/app/leituras/${mesReferencia}`);
-    revalidatePath('/app/enviar-leitura');
+    revalidatePath(`/app/u/${parsed.data.unidade_id}`);
+    revalidatePath(`/app/u/${parsed.data.unidade_id}/leituras`);
+    revalidatePath(`/app/u/${parsed.data.unidade_id}/leituras/${mesReferencia}`);
+    revalidatePath(`/app/u/${parsed.data.unidade_id}/enviar-leitura`);
     revalidatePath('/admin/leituras');
     revalidatePath('/admin/leituras/nova');
-    redirect('/app/enviar-leitura?success=1');
+    redirect(`${errPath}?success=1`);
 }

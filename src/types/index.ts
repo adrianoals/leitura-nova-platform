@@ -17,6 +17,23 @@ export interface Unidade {
   apartamento: string;
 }
 
+export type TipoAcesso = 'proprietario' | 'locatario';
+
+export interface Pessoa {
+  id: string;          // = auth.users.id
+  nome: string | null;
+}
+
+export interface UnidadeAcesso {
+  id: string;
+  unidadeId: string;
+  authUserId: string;
+  tipo: TipoAcesso | null;
+  ativo: boolean;
+  pessoa?: Pessoa;
+  unidade?: Unidade;
+}
+
 export interface LeituraMensal {
   id: string;
   tipo: 'agua' | 'gas' | 'agua_fria' | 'agua_quente';
@@ -29,6 +46,7 @@ export interface LeituraMensal {
   criadoPorMorador?: boolean;
 }
 
+/** @deprecated Use UnidadeAcesso. Será removido após cleanup do refactor multi-vínculo. */
 export interface MoradorData {
   id: string;
   authUserId: string;

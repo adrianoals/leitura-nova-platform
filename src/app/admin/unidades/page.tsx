@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server';
 import FilterApplyButton from '@/components/admin/FilterApplyButton';
 import DeleteUnidadeButton from '@/components/admin/DeleteUnidadeButton';
 import ActionToast from '@/components/admin/ActionToast';
-import { firstOfRelation } from '@/lib/relations';
 
 type SearchParams = Promise<{
     condominio_id?: string;
@@ -24,7 +23,7 @@ type UnidadeRow = {
     bloco: string;
     apartamento: string;
     condominio: { id: string; nome: string } | { id: string; nome: string }[] | null;
-    moradores: { id: string; nome: string | null } | { id: string; nome: string | null }[] | null;
+    unidade_acessos: { ativo: boolean }[] | null;
 };
 
 function getCondominioNome(condominio: UnidadeRow['condominio']) {
@@ -59,9 +58,8 @@ export default async function UnidadesPage({ searchParams }: { searchParams: Sea
                         id,
                         nome
                     ),
-                    moradores (
-                        id,
-                        nome
+                    unidade_acessos (
+                        ativo
                     )
                 `)
                 .eq('condominio_id', selectedCondominioId)
@@ -173,16 +171,16 @@ export default async function UnidadesPage({ searchParams }: { searchParams: Sea
                             <tr className="border-b border-slate-100 bg-slate-50">
                                 <th className="text-left text-xs font-semibold text-slate-500 uppercase px-6 py-3">Unidade</th>
                                 <th className="text-left text-xs font-semibold text-slate-500 uppercase px-4 py-3 hidden sm:table-cell">Condomínio</th>
-                                <th className="text-left text-xs font-semibold text-slate-500 uppercase px-4 py-3 hidden md:table-cell">Proprietário</th>
-                                <th className="text-center text-xs font-semibold text-slate-500 uppercase px-4 py-3">Status</th>
+                                <th className="text-center text-xs font-semibold text-slate-500 uppercase px-4 py-3">Acessos</th>
                                 <th className="text-right text-xs font-semibold text-slate-500 uppercase px-6 py-3">Ação</th>
                             </tr>
                         </thead>
                         <tbody>
                             {unidades.map((u) => {
                                 const condominioNome = getCondominioNome(u.condominio);
-                                const primeiroMorador = firstOfRelation(u.moradores);
-                                const hasAccess = Boolean(primeiroMorador);
+                                const acessos = u.unidade_acessos || [];
+                                const ativos = acessos.filter((a) => a.ativo).length;
+                                const desabilitados = acessos.length - ativos;
 
                                 return (
                                     <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
@@ -198,12 +196,10 @@ export default async function UnidadesPage({ searchParams }: { searchParams: Sea
                                                 {condominioNome}
                                             </div>
                                         </td>
-                                        <td className="px-4 py-4 text-sm text-slate-600 hidden md:table-cell">
-                                            {primeiroMorador?.nome || <span className="italic text-slate-400">—</span>}
-                                        </td>
                                         <td className="text-center px-4 py-4">
-                                            <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${hasAccess ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                                                {hasAccess ? 'Com morador' : 'Sem morador'}
+                                            <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${ativos > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                                                {ativos} ativo{ativos === 1 ? '' : 's'}
+                                                {desabilitados > 0 && ` (${desabilitados} desabilitado${desabilitados === 1 ? '' : 's'})`}
                                             </span>
                                         </td>
                                         <td className="text-right px-6 py-4">
@@ -223,7 +219,7 @@ export default async function UnidadesPage({ searchParams }: { searchParams: Sea
                             })}
                             {unidades.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center text-sm text-slate-500">
+                                    <td colSpan={4} className="px-6 py-8 text-center text-sm text-slate-500">
                                         Nenhuma unidade encontrada para este condomínio.
                                     </td>
                                 </tr>

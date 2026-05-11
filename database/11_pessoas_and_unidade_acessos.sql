@@ -62,6 +62,19 @@ COMMENT ON TABLE unidade_acessos IS 'Vínculos N:N entre auth.users e unidades. 
 COMMENT ON COLUMN unidade_acessos.tipo IS 'NULL = legado/sem rótulo. proprietario/locatario são informacionais (não afetam permissões).';
 COMMENT ON COLUMN unidade_acessos.ativo IS 'Soft-disable: vínculo permanece mas RLS bloqueia acesso quando false';
 
+-- FK explícita pra PostgREST conseguir fazer embedded join `pessoa:pessoas(...)`.
+-- (Ambas as tabelas referenciam auth.users.id, mas PostgREST não traversa isso sozinho.)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'unidade_acessos_pessoa_fkey'
+    ) THEN
+        ALTER TABLE unidade_acessos
+            ADD CONSTRAINT unidade_acessos_pessoa_fkey
+            FOREIGN KEY (auth_user_id) REFERENCES pessoas(id) ON DELETE CASCADE;
+    END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_acessos_unidade ON unidade_acessos(unidade_id);
 CREATE INDEX IF NOT EXISTS idx_acessos_auth ON unidade_acessos(auth_user_id);
 CREATE INDEX IF NOT EXISTS idx_acessos_unidade_ativo ON unidade_acessos(unidade_id) WHERE ativo;
