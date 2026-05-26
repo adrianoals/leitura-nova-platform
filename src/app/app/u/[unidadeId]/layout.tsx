@@ -37,9 +37,9 @@ export default async function UnidadeLayout({ children, params }: LayoutProps) {
 
     return (
         <>
-            <div className="bg-slate-50 border-b border-slate-200 px-6 py-3">
-                <div className="max-w-6xl mx-auto flex items-center justify-between">
-                    <div className="text-xs text-slate-500">Você está em:</div>
+            <div className="bg-slate-50 border-b border-slate-200 px-4 sm:px-6 py-3">
+                <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
+                    <div className="text-xs text-slate-500 shrink-0">Você está em:</div>
                     <UnitDropdown atual={atual} outros={outros} />
                 </div>
             </div>

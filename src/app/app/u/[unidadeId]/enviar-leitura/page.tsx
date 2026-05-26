@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { FaArrowLeft, FaCamera, FaCheckCircle, FaCloudUploadAlt, FaFire, FaInfoCircle, FaTint, FaThermometerHalf } from 'react-icons/fa';
+import { FaArrowLeft, FaCamera, FaCloudUploadAlt, FaFire, FaInfoCircle, FaTint, FaThermometerHalf } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import { resolveUnidadeContextById } from '@/lib/adminPreview';
 import { enviarLeituraMorador } from '@/actions/moradorActions';
+import LeituraSubmitModal from '@/components/morador/LeituraSubmitModal';
 import {
     formatMes,
     formatTipo,
@@ -11,8 +12,6 @@ import {
     getTiposPermitidos,
     type TipoLeitura,
 } from '@/lib/morador';
-
-type SearchParams = Promise<{ success?: string; error?: string }>;
 
 type LeituraTipoRow = {
     tipo: TipoLeitura;
@@ -26,12 +25,10 @@ function getTipoIcon(tipo: TipoLeitura) {
 
 interface PageProps {
     params: Promise<{ unidadeId: string }>;
-    searchParams: SearchParams;
 }
 
-export default async function EnviarLeituraPage({ params, searchParams }: PageProps) {
+export default async function EnviarLeituraPage({ params }: PageProps) {
     const { unidadeId } = await params;
-    const sp = await searchParams;
     const supabase = await createClient();
     const {
         data: { user },
@@ -50,8 +47,6 @@ export default async function EnviarLeituraPage({ params, searchParams }: PagePr
         temAguaQuente: vinculo.condominio.temAguaQuente,
         temGas: vinculo.condominio.temGas,
     } as never);
-    const success = sp.success === '1';
-    const errorMessage = sp.error ? decodeURIComponent(sp.error) : '';
 
     if (tiposPermitidos.length === 0) {
         return (
@@ -141,18 +136,7 @@ export default async function EnviarLeituraPage({ params, searchParams }: PagePr
                 </div>
             </div>
 
-            {success && (
-                <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800 flex items-center gap-2">
-                    <FaCheckCircle className="h-4 w-4" />
-                    Leitura enviada com sucesso.
-                </div>
-            )}
-
-            {errorMessage && (
-                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                    {errorMessage}
-                </div>
-            )}
+            <LeituraSubmitModal unidadeId={vinculo.unidadeId} />
 
             <form action={enviarLeituraMorador} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
                 <input type="hidden" name="unidade_id" value={vinculo.unidadeId} />
