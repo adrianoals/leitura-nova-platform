@@ -30,7 +30,7 @@ type SindicoRow = {
 type UnidadeRow = {
     id: string;
     condominio_id: string;
-    moradores: { id: string }[] | null;
+    unidade_acessos: { id: string; ativo: boolean }[] | null;
 };
 
 type LeituraRow = {
@@ -93,7 +93,7 @@ export default async function SindicoDashboard() {
         .select(`
             id,
             condominio_id,
-            moradores(id)
+            unidade_acessos(id, ativo)
         `)
         .in('condominio_id', condominioIds);
 
@@ -110,17 +110,20 @@ export default async function SindicoDashboard() {
         leiturasMes = (leiturasRaw || []) as LeituraRow[];
     }
 
-    const statsByCondominio = new Map<string, { unidades: number; moradores: number; leiturasMes: number }>();
+    const statsByCondominio = new Map<string, { unidades: number; acessos: number; leiturasMes: number }>();
 
     for (const condominioId of condominioIds) {
         const unidadesCondo = unidades.filter((u) => u.condominio_id === condominioId);
         const unidadeIdsCondo = new Set(unidadesCondo.map((u) => u.id));
-        const moradoresCondo = unidadesCondo.reduce((sum, unidade) => sum + (unidade.moradores?.length || 0), 0);
+        const acessosCondo = unidadesCondo.reduce(
+            (sum, unidade) => sum + (unidade.unidade_acessos?.filter((a) => a.ativo).length || 0),
+            0,
+        );
         const leiturasCondo = leiturasMes.filter((l) => unidadeIdsCondo.has(l.unidade_id)).length;
 
         statsByCondominio.set(condominioId, {
             unidades: unidadesCondo.length,
-            moradores: moradoresCondo,
+            acessos: acessosCondo,
             leiturasMes: leiturasCondo,
         });
     }
@@ -141,7 +144,7 @@ export default async function SindicoDashboard() {
 
                     const stats = statsByCondominio.get(condominio.id) || {
                         unidades: 0,
-                        moradores: 0,
+                        acessos: 0,
                         leiturasMes: 0,
                     };
 
@@ -163,8 +166,8 @@ export default async function SindicoDashboard() {
                                     <p className="text-xs text-slate-500">Unidades</p>
                                 </div>
                                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
-                                    <p className="text-lg font-bold text-slate-900">{stats.moradores}</p>
-                                    <p className="text-xs text-slate-500">Moradores</p>
+                                    <p className="text-lg font-bold text-slate-900">{stats.acessos}</p>
+                                    <p className="text-xs text-slate-500">Acessos</p>
                                 </div>
                                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
                                     <p className="text-lg font-bold text-slate-900">{stats.leiturasMes}</p>

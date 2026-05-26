@@ -20,7 +20,7 @@ type UnidadeRow = {
     bloco: string;
     apartamento: string;
     condominio_id: string;
-    moradores: { nome: string | null } | { nome: string | null }[] | null;
+    unidade_acessos: { ativo: boolean; pessoa: { nome: string | null } | { nome: string | null }[] | null }[] | null;
 };
 
 export default async function VisualizarComoPage({ searchParams }: { searchParams: SearchParams }) {
@@ -44,8 +44,11 @@ export default async function VisualizarComoPage({ searchParams }: { searchParam
                 bloco,
                 apartamento,
                 condominio_id,
-                moradores (
-                    nome
+                unidade_acessos (
+                    ativo,
+                    pessoa:pessoas (
+                        nome
+                    )
                 )
             `)
             .eq('condominio_id', condominioId)
@@ -157,7 +160,16 @@ export default async function VisualizarComoPage({ searchParams }: { searchParam
                         <div className="text-sm text-yellow-700 space-y-1">
                             <p><strong>Condomínio:</strong> {condominioSelecionado?.nome}</p>
                             <p><strong>Unidade:</strong> {unidadeSelecionada.bloco} — {unidadeSelecionada.apartamento}</p>
-                            <p><strong>Proprietário:</strong> {firstOfRelation(unidadeSelecionada.moradores)?.nome || 'Sem morador configurado'}</p>
+                            <p><strong>Acessos ativos:</strong> {
+                                (() => {
+                                    const ativos = (unidadeSelecionada.unidade_acessos || []).filter((a) => a.ativo);
+                                    if (ativos.length === 0) return 'Nenhum usuário cadastrado';
+                                    const nomes = ativos
+                                        .map((a) => firstOfRelation(a.pessoa)?.nome)
+                                        .filter(Boolean);
+                                    return nomes.length > 0 ? nomes.join(', ') : `${ativos.length} usuário(s) sem nome`;
+                                })()
+                            }</p>
                         </div>
                     </div>
                 )}

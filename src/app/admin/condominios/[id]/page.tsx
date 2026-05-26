@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { FaArrowLeft, FaDoorOpen, FaTint, FaFire, FaCamera, FaPlus, FaKey, FaUserShield } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import ActionToast from '@/components/admin/ActionToast';
-import { firstOfRelation } from '@/lib/relations';
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ deleted?: string; error?: string }>;
@@ -19,7 +18,7 @@ type UnidadeRow = {
     id: string;
     bloco: string;
     apartamento: string;
-    moradores: { id: string; nome: string | null } | { id: string; nome: string | null }[] | null;
+    unidade_acessos: { ativo: boolean }[] | null;
 };
 
 export default async function CondominioDetailPage({
@@ -47,9 +46,8 @@ export default async function CondominioDetailPage({
                 id,
                 bloco,
                 apartamento,
-                moradores (
-                    id,
-                    nome
+                unidade_acessos (
+                    ativo
                 )
             `)
             .eq('condominio_id', id)
@@ -104,12 +102,12 @@ export default async function CondominioDetailPage({
                     <p className="text-xs text-slate-500">Unidades</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
-                    <p className="text-2xl font-bold text-slate-900">{unidades.filter((u) => Boolean(firstOfRelation(u.moradores))).length}</p>
-                    <p className="text-xs text-slate-500">Moradores</p>
+                    <p className="text-2xl font-bold text-slate-900">{unidades.filter((u) => (u.unidade_acessos || []).some((a) => a.ativo)).length}</p>
+                    <p className="text-xs text-slate-500">Com usuário</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
-                    <p className="text-2xl font-bold text-yellow-600">{unidades.filter((u) => !firstOfRelation(u.moradores)).length}</p>
-                    <p className="text-xs text-slate-500">Sem Morador</p>
+                    <p className="text-2xl font-bold text-yellow-600">{unidades.filter((u) => !(u.unidade_acessos || []).some((a) => a.ativo)).length}</p>
+                    <p className="text-xs text-slate-500">Sem usuário</p>
                 </div>
             </div>
 
@@ -134,15 +132,15 @@ export default async function CondominioDetailPage({
                         <thead>
                             <tr className="border-b border-slate-100 bg-slate-50">
                                 <th className="text-left text-xs font-semibold text-slate-500 uppercase px-6 py-3">Unidade</th>
-                                <th className="text-left text-xs font-semibold text-slate-500 uppercase px-4 py-3 hidden sm:table-cell">Proprietário</th>
-                                <th className="text-center text-xs font-semibold text-slate-500 uppercase px-4 py-3">Status</th>
+                                <th className="text-center text-xs font-semibold text-slate-500 uppercase px-4 py-3">Acessos</th>
                                 <th className="text-right text-xs font-semibold text-slate-500 uppercase px-6 py-3">Ação</th>
                             </tr>
                         </thead>
                         <tbody>
                             {unidades.map((u) => {
-                                const morador = firstOfRelation(u.moradores);
-                                const hasMorador = Boolean(morador);
+                                const acessos = u.unidade_acessos || [];
+                                const ativos = acessos.filter((a) => a.ativo).length;
+                                const desabilitados = acessos.length - ativos;
 
                                 return (
                                 <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
@@ -152,12 +150,10 @@ export default async function CondominioDetailPage({
                                             <p className="text-sm font-medium text-slate-900">{u.bloco} — {u.apartamento}</p>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-4 text-sm text-slate-600 hidden sm:table-cell">
-                                        {morador?.nome || <span className="text-slate-400 italic">Sem morador</span>}
-                                    </td>
                                     <td className="text-center px-4 py-4">
-                                        <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${hasMorador ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                                            {hasMorador ? 'Ativo' : 'Pendente'}
+                                        <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${ativos > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                                            {ativos} ativo{ativos === 1 ? '' : 's'}
+                                            {desabilitados > 0 && ` (${desabilitados} desabilitado${desabilitados === 1 ? '' : 's'})`}
                                         </span>
                                     </td>
                                     <td className="text-right px-6 py-4">
@@ -166,7 +162,7 @@ export default async function CondominioDetailPage({
                                                 Editar
                                             </Link>
                                             <Link href={`/admin/moradores/${u.id}`} className="text-sm text-amber-700 hover:text-amber-800 font-medium inline-flex items-center gap-1">
-                                                <FaKey className="h-3 w-3" /> Morador
+                                                <FaKey className="h-3 w-3" /> Usuários
                                             </Link>
                                         </div>
                                     </td>
@@ -175,7 +171,7 @@ export default async function CondominioDetailPage({
                             })}
                             {unidades.length === 0 && (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-8 text-center text-sm text-slate-500">
+                                    <td colSpan={3} className="px-6 py-8 text-center text-sm text-slate-500">
                                         Nenhuma unidade cadastrada
                                     </td>
                                 </tr>
