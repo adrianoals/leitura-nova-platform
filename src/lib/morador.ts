@@ -71,7 +71,7 @@ export function formatValor(valor: number) {
 export function formatMedicao(medicao: number) {
     return Number(medicao).toLocaleString('pt-BR', {
         minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
+        maximumFractionDigits: 3,
     });
 }
 

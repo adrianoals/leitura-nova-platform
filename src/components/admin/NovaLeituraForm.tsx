@@ -246,11 +246,11 @@ export default function NovaLeituraForm({
                         <label className="block text-sm font-medium text-slate-700">Medição (m³)</label>
                         <input
                             type="number"
-                            step="0.01"
-                            min="0.01"
+                            step="0.001"
+                            min="0.001"
                             name="medicao"
                             className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-vscode-blue/20 focus:border-vscode-blue transition-all"
-                            placeholder="0.00"
+                            placeholder="0.000"
                             required
                         />
                     </div>

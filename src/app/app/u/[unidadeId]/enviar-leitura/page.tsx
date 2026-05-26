@@ -181,9 +181,9 @@ export default async function EnviarLeituraPage({ params, searchParams }: PagePr
                         id="medicao"
                         name="medicao"
                         type="number"
-                        step="0.01"
-                        min="0.01"
-                        placeholder="Ex: 123.45"
+                        step="0.001"
+                        min="0.001"
+                        placeholder="Ex: 123.456"
                         className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
                         required
                     />
