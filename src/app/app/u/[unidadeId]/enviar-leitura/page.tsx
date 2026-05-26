@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { FaArrowLeft, FaCamera, FaCloudUploadAlt, FaFire, FaInfoCircle, FaTint, FaThermometerHalf } from 'react-icons/fa';
+import { FaArrowLeft, FaCamera, FaCheckCircle, FaCloudUploadAlt, FaFire, FaInfoCircle, FaTint, FaThermometerHalf } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import { resolveUnidadeContextById } from '@/lib/adminPreview';
 import { enviarLeituraMorador } from '@/actions/moradorActions';
@@ -85,6 +85,8 @@ export default async function EnviarLeituraPage({ params }: PageProps) {
 
     const leiturasMes = (leiturasMesRaw || []) as unknown as LeituraTipoRow[];
     const tiposEnviados = new Set(leiturasMes.map((l) => l.tipo));
+    const tiposPendentes = tiposPermitidos.filter((t) => !tiposEnviados.has(t));
+    const todosEnviados = tiposPermitidos.length > 0 && tiposPendentes.length === 0;
 
     if (!envioHabilitado) {
         return (
@@ -124,6 +126,41 @@ export default async function EnviarLeituraPage({ params }: PageProps) {
         );
     }
 
+    if (todosEnviados) {
+        return (
+            <div className="max-w-lg mx-auto space-y-6">
+                <div className="flex items-center gap-4">
+                    <Link href={`/app/u/${vinculo.unidadeId}`} className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
+                        <FaArrowLeft className="h-4 w-4" />
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900">Enviar Leitura</h1>
+                        <p className="text-slate-500 text-sm">Mes {formatMes(mesAtual)}</p>
+                    </div>
+                </div>
+                <div className="rounded-2xl border border-green-200 bg-green-50 p-6 space-y-3">
+                    <div className="flex items-start gap-3">
+                        <FaCheckCircle className="h-5 w-5 mt-0.5 text-green-600 shrink-0" />
+                        <div>
+                            <p className="text-sm font-semibold text-green-900">
+                                Todas as leituras de {formatMes(mesAtual)} já foram enviadas.
+                            </p>
+                            <p className="text-sm text-green-800 mt-1">
+                                Para corrigir alguma leitura, entre em contato com a administração.
+                            </p>
+                        </div>
+                    </div>
+                    <Link
+                        href={`/app/u/${vinculo.unidadeId}/leituras`}
+                        className="inline-flex items-center gap-2 rounded-xl bg-vscode-blue px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-vscode-blue/25 hover:bg-vscode-blue-dark transition-all hover:scale-[1.02]"
+                    >
+                        Ver minhas leituras
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-lg mx-auto space-y-6">
             <div className="flex items-center gap-4">
@@ -145,15 +182,18 @@ export default async function EnviarLeituraPage({ params }: PageProps) {
                     <label className="block text-sm font-medium text-slate-700">Tipo de leitura</label>
                     <select
                         name="tipo"
-                        defaultValue={tiposPermitidos[0] || ''}
+                        defaultValue={tiposPendentes[0] || ''}
                         className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
                         required
                     >
-                        {tiposPermitidos.map((tipo) => (
-                            <option key={tipo} value={tipo}>
-                                {formatTipo(tipo)} {tiposEnviados.has(tipo) ? '(ja enviada neste mes)' : '(pendente)'}
-                            </option>
-                        ))}
+                        {tiposPermitidos.map((tipo) => {
+                            const jaEnviada = tiposEnviados.has(tipo);
+                            return (
+                                <option key={tipo} value={tipo} disabled={jaEnviada}>
+                                    {formatTipo(tipo)} {jaEnviada ? '— já enviada neste mês' : ''}
+                                </option>
+                            );
+                        })}
                     </select>
                 </div>
 
