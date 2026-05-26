@@ -11,14 +11,34 @@ import {
     deleteAcesso,
 } from '@/actions/acessoActions';
 
+type FormSource = 'pessoa' | 'tipo' | 'credenciais' | 'status';
+
 interface Props {
     params: Promise<{ id: string; acessoId: string }>;
-    searchParams: Promise<{ success?: string; error?: string }>;
+    searchParams: Promise<{ success?: string; error?: string; source?: string }>;
+}
+
+function FormFeedback({ success, error }: { success?: string; error?: string }) {
+    if (success) {
+        return (
+            <div className="rounded-xl bg-green-50 border border-green-200 p-3 text-sm text-green-800">
+                {decodeURIComponent(success)}
+            </div>
+        );
+    }
+    if (error) {
+        return (
+            <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+                {decodeURIComponent(error)}
+            </div>
+        );
+    }
+    return null;
 }
 
 export default async function AcessoEditPage({ params, searchParams }: Props) {
     const { id: unidadeId, acessoId } = await params;
-    const { success, error } = await searchParams;
+    const { success, error, source } = await searchParams;
     const supabase = await createClient();
 
     const { data: acesso } = await supabase
@@ -57,9 +77,10 @@ export default async function AcessoEditPage({ params, searchParams }: Props) {
     const { data: authUser } = await adminClient.auth.admin.getUserById(acesso.auth_user_id as string);
     const email = authUser?.user?.email ?? '';
 
-    const returnPath = `/admin/moradores/${unidadeId}/${acessoId}`;
-    const successMsg = success ? decodeURIComponent(success) : null;
-    const errorMsg = error ? decodeURIComponent(error) : null;
+    const basePath = `/admin/moradores/${unidadeId}/${acessoId}`;
+    const returnPathFor = (s: FormSource) => `${basePath}?source=${s}`;
+    const feedbackFor = (s: FormSource) =>
+        source === s ? { success, error } : { success: undefined, error: undefined };
 
     return (
         <div className="max-w-2xl mx-auto space-y-6 p-6">
@@ -78,13 +99,6 @@ export default async function AcessoEditPage({ params, searchParams }: Props) {
                 </div>
             </div>
 
-            {successMsg && (
-                <div className="rounded-xl bg-green-50 border border-green-200 p-3 text-sm text-green-800">{successMsg}</div>
-            )}
-            {errorMsg && (
-                <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">{errorMsg}</div>
-            )}
-
             {/* Nome */}
             <form action={updatePessoa} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
                 <div className="flex items-center gap-2">
@@ -92,7 +106,7 @@ export default async function AcessoEditPage({ params, searchParams }: Props) {
                     <h2 className="text-sm font-semibold text-slate-700">Dados da pessoa</h2>
                 </div>
                 <input type="hidden" name="auth_user_id" value={acesso.auth_user_id as string} />
-                <input type="hidden" name="return_path" value={returnPath} />
+                <input type="hidden" name="return_path" value={returnPathFor('pessoa')} />
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-slate-700">Nome</label>
                     <input
@@ -102,6 +116,7 @@ export default async function AcessoEditPage({ params, searchParams }: Props) {
                         className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-vscode-blue/20 focus:border-vscode-blue"
                     />
                 </div>
+                <FormFeedback {...feedbackFor('pessoa')} />
                 <button
                     type="submit"
                     className="inline-flex items-center gap-2 rounded-xl bg-vscode-blue px-4 py-2.5 text-sm font-semibold text-white hover:bg-vscode-blue-dark transition-all"
@@ -114,7 +129,7 @@ export default async function AcessoEditPage({ params, searchParams }: Props) {
             <form action={updateAcesso} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
                 <h2 className="text-sm font-semibold text-slate-700">Vínculo com a unidade</h2>
                 <input type="hidden" name="acesso_id" value={acesso.id as string} />
-                <input type="hidden" name="return_path" value={returnPath} />
+                <input type="hidden" name="return_path" value={returnPathFor('tipo')} />
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-slate-700">Tipo</label>
                     <select
@@ -128,6 +143,7 @@ export default async function AcessoEditPage({ params, searchParams }: Props) {
                     </select>
                     <p className="text-xs text-slate-500">Apenas informativo. Não afeta permissões.</p>
                 </div>
+                <FormFeedback {...feedbackFor('tipo')} />
                 <button
                     type="submit"
                     className="inline-flex items-center gap-2 rounded-xl bg-vscode-blue px-4 py-2.5 text-sm font-semibold text-white hover:bg-vscode-blue-dark transition-all"
@@ -143,7 +159,7 @@ export default async function AcessoEditPage({ params, searchParams }: Props) {
                     <h2 className="text-sm font-semibold text-slate-700">Credenciais de acesso</h2>
                 </div>
                 <input type="hidden" name="auth_user_id" value={acesso.auth_user_id as string} />
-                <input type="hidden" name="return_path" value={returnPath} />
+                <input type="hidden" name="return_path" value={returnPathFor('credenciais')} />
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-slate-700">
                         <FaEnvelope className="inline h-3 w-3 mr-1" /> E-mail
@@ -166,6 +182,7 @@ export default async function AcessoEditPage({ params, searchParams }: Props) {
                     />
                     <p className="text-xs text-slate-500">Mínimo 6 caracteres. Em branco mantém a senha atual.</p>
                 </div>
+                <FormFeedback {...feedbackFor('credenciais')} />
                 <button
                     type="submit"
                     className="inline-flex items-center gap-2 rounded-xl bg-vscode-blue px-4 py-2.5 text-sm font-semibold text-white hover:bg-vscode-blue-dark transition-all"
@@ -177,6 +194,7 @@ export default async function AcessoEditPage({ params, searchParams }: Props) {
             {/* Ativar/Desativar + Excluir */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
                 <h2 className="text-sm font-semibold text-slate-700">Status do vínculo</h2>
+                <FormFeedback {...feedbackFor('status')} />
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-sm text-slate-700">
@@ -189,7 +207,7 @@ export default async function AcessoEditPage({ params, searchParams }: Props) {
                     <form action={toggleAcessoAtivo}>
                         <input type="hidden" name="acesso_id" value={acesso.id as string} />
                         <input type="hidden" name="ativo" value={acesso.ativo ? 'false' : 'true'} />
-                        <input type="hidden" name="return_path" value={returnPath} />
+                        <input type="hidden" name="return_path" value={returnPathFor('status')} />
                         <button
                             type="submit"
                             className={
