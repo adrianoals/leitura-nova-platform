@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { FaArrowLeft, FaCalendarAlt, FaChevronRight, FaFire, FaTint, FaThermometerHalf } from 'react-icons/fa';
@@ -120,20 +121,43 @@ export default async function LeiturasPage({ params }: PageProps) {
                                 <div className="mt-4 flex flex-wrap gap-3">
                                     {leiturasMes.map((leitura) => {
                                         const Icon = getTipoIcon(leitura.tipo);
+                                        const consumoStr = leitura.consumo === null || leitura.consumo === undefined
+                                            ? '-'
+                                            : `${formatMedicao(Number(leitura.consumo))} m3`;
                                         return (
-                                            <div
-                                                key={leitura.id}
-                                                className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs text-slate-700"
-                                            >
-                                                <Icon className={`h-3.5 w-3.5 ${getTipoColor(leitura.tipo)}`} />
-                                                <span className="font-medium">{formatTipo(leitura.tipo)}</span>
-                                                <span>Medicao {formatMedicao(Number(leitura.medicao))} m3</span>
-                                                <span>
-                                                    Consumo {leitura.consumo === null || leitura.consumo === undefined ? '-' : `${formatMedicao(Number(leitura.consumo))} m3`}
-                                                </span>
-                                                <span>{formatValor(Number(leitura.valor))}</span>
-                                                <span className="text-slate-500">({formatData(leitura.data_leitura)})</span>
-                                            </div>
+                                            <Fragment key={leitura.id}>
+                                                {/* Mobile: mini-card empilhado */}
+                                                <div className="sm:hidden w-full rounded-xl bg-slate-50 p-3 text-xs text-slate-700">
+                                                    <div className="flex items-center gap-2">
+                                                        <Icon className={`h-4 w-4 ${getTipoColor(leitura.tipo)}`} />
+                                                        <span className="font-semibold text-sm text-slate-900">{formatTipo(leitura.tipo)}</span>
+                                                    </div>
+                                                    <div className="mt-2 grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <p className="text-[10px] uppercase tracking-wide text-slate-500">Medicao</p>
+                                                            <p className="font-medium text-slate-800">{formatMedicao(Number(leitura.medicao))} m3</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] uppercase tracking-wide text-slate-500">Consumo</p>
+                                                            <p className="font-medium text-slate-800">{consumoStr}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-2">
+                                                        <span className="font-semibold text-slate-900">{formatValor(Number(leitura.valor))}</span>
+                                                        <span className="text-slate-500">{formatData(leitura.data_leitura)}</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Desktop/tablet: chip pílula */}
+                                                <div className="hidden sm:inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs text-slate-700">
+                                                    <Icon className={`h-3.5 w-3.5 ${getTipoColor(leitura.tipo)}`} />
+                                                    <span className="font-medium">{formatTipo(leitura.tipo)}</span>
+                                                    <span>Medicao {formatMedicao(Number(leitura.medicao))} m3</span>
+                                                    <span>Consumo {consumoStr}</span>
+                                                    <span>{formatValor(Number(leitura.valor))}</span>
+                                                    <span className="text-slate-500">({formatData(leitura.data_leitura)})</span>
+                                                </div>
+                                            </Fragment>
                                         );
                                     })}
                                 </div>
