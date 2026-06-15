@@ -6,12 +6,14 @@ import {
     FaImage,
     FaLock,
     FaLockOpen,
+    FaPencilAlt,
     FaPlus,
     FaSearch,
     FaTint,
 } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import FilterApplyButton from '@/components/admin/FilterApplyButton';
+import DeleteLeituraButton from '@/components/admin/DeleteLeituraButton';
 import { firstOfRelation } from '@/lib/relations';
 import { fecharMesLeituras, reabrirMesLeituras } from '@/actions/leituraActions';
 
@@ -20,6 +22,8 @@ type SearchParams = Promise<{
     mes?: string;
     q?: string;
     created?: string;
+    updated?: string;
+    deleted?: string;
     closed?: string;
     reopened?: string;
     error?: string;
@@ -178,6 +182,8 @@ export default async function LeiturasAdminPage({ searchParams }: { searchParams
     const mesAtual = getMesAtual();
     const selectedMes = isMes(params.mes || '') ? String(params.mes) : mesAtual;
     const created = params.created === '1';
+    const updated = params.updated === '1';
+    const deleted = params.deleted === '1';
     const closed = params.closed === '1';
     const reopened = params.reopened === '1';
     const errorMessage = params.error ? decodeURIComponent(params.error) : '';
@@ -292,7 +298,9 @@ export default async function LeiturasAdminPage({ searchParams }: { searchParams
             </div>
 
             {created && <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">Leitura salva com sucesso.</div>}
-            {closed && <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">Mes fechado e publicado.</div>}
+            {updated && <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">Leitura atualizada.</div>}
+            {deleted && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Leitura excluida.</div>}
+            {closed && <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">Mes fechado.</div>}
             {reopened && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Mes reaberto.</div>}
             {errorMessage && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{errorMessage}</div>}
 
@@ -336,10 +344,10 @@ export default async function LeiturasAdminPage({ searchParams }: { searchParams
                             <div>
                                 <p className="text-sm font-semibold text-slate-900">Fechamento de Mes</p>
                                 <p className="text-sm text-slate-600">Periodo selecionado: <span className="font-medium">{formatMes(selectedMes)}</span></p>
-                                <p className={`mt-1 text-xs ${mesFechado ? 'text-green-700' : 'text-amber-700'}`}>
+                                <p className={`mt-1 text-xs ${mesFechado ? 'text-green-700' : 'text-slate-600'}`}>
                                     {mesFechado
-                                        ? `Publicado em ${fechamento?.fechado_em ? formatData(fechamento.fechado_em.slice(0, 10)) : 'data indisponivel'}`
-                                        : 'Mes aberto (morador nao visualiza)'}
+                                        ? `Fechado em ${fechamento?.fechado_em ? formatData(fechamento.fechado_em.slice(0, 10)) : 'data indisponivel'} - morador nao envia mais`
+                                        : 'Mes aberto - morador pode enviar leitura'}
                                 </p>
                             </div>
                             {mesFechado ? (
@@ -434,9 +442,20 @@ export default async function LeiturasAdminPage({ searchParams }: { searchParams
                                             <td className="text-center px-4 py-4 text-sm text-slate-900">{formatValor(Number(l.valor))}</td>
                                             <td className="text-center px-4 py-4 text-sm text-slate-700">{fotosCount > 0 ? <span className="inline-flex items-center gap-1 text-green-700"><FaImage className="h-3 w-3" /> {fotosCount}</span> : '-'}</td>
                                             <td className="text-right px-6 py-4">
-                                                <Link href={buildDetalheHref(l.id, selectedCondominioId, selectedMes)} className="inline-flex items-center gap-1 text-sm font-medium text-vscode-blue hover:text-vscode-blue-dark">
-                                                    <FaEye className="h-3 w-3" /> Ver
-                                                </Link>
+                                                <div className="inline-flex items-center gap-4">
+                                                    <Link href={buildDetalheHref(l.id, selectedCondominioId, selectedMes)} className="inline-flex items-center gap-1 text-sm font-medium text-vscode-blue hover:text-vscode-blue-dark">
+                                                        <FaEye className="h-3 w-3" /> Ver
+                                                    </Link>
+                                                    <Link href={`/admin/leituras/${l.id}/editar?${new URLSearchParams({ condominio_id: selectedCondominioId, mes: selectedMes }).toString()}`} className="inline-flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-slate-900">
+                                                        <FaPencilAlt className="h-3 w-3" /> Editar
+                                                    </Link>
+                                                    <DeleteLeituraButton
+                                                        leituraId={l.id}
+                                                        label={`${getUnidadeLabel(l)} - ${formatTipo(l.tipo)} - ${formatMes(l.mes_referencia)}`}
+                                                        returnCondominioId={selectedCondominioId}
+                                                        returnMes={selectedMes}
+                                                    />
+                                                </div>
                                             </td>
                                         </tr>
                                     );

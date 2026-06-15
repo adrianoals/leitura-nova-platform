@@ -16,6 +16,14 @@ const leituraSchema = z.object({
     valor: z.coerce.number().min(0, 'Valor inválido'),
 });
 
+const updateLeituraSchema = leituraSchema.extend({
+    id: z.string().uuid('Leitura inválida'),
+});
+
+const deleteLeituraSchema = z.object({
+    id: z.string().uuid('Leitura inválida'),
+});
+
 const fechamentoSchema = z.object({
     condominio_id: z.string().uuid('Condomínio inválido'),
     mes_referencia: z.string().regex(/^\d{4}-\d{2}$/, 'Mês inválido'),
@@ -58,6 +66,20 @@ function buildNovaLeituraRedirect(errorMessage: string, condominioId?: string, u
     }
 
     return `/admin/leituras/nova?${query.toString()}`;
+}
+
+function buildEditarLeituraRedirect(leituraId: string, errorMessage: string, condominioId?: string, mes?: string) {
+    const query = new URLSearchParams({ error: errorMessage });
+
+    if (condominioId && isUuid(condominioId)) {
+        query.set('condominio_id', condominioId);
+    }
+
+    if (mes && /^\d{4}-\d{2}$/.test(mes)) {
+        query.set('mes', mes);
+    }
+
+    return `/admin/leituras/${leituraId}/editar?${query.toString()}`;
 }
 
 function buildLeiturasRedirect(
@@ -187,6 +209,165 @@ export async function createLeitura(formData: FormData) {
     listQuery.set('mes', parsed.data.mes_referencia);
 
     redirect(`/admin/leituras?${listQuery.toString()}`);
+}
+
+export async function updateLeitura(formData: FormData) {
+    const { supabase } = await ensureAdmin();
+    const returnCondominioId = String(formData.get('return_condominio_id') || '').trim();
+    const returnMes = String(formData.get('return_mes') || '').trim();
+    const leituraIdRaw = String(formData.get('id') || '').trim();
+
+    const parsedId = deleteLeituraSchema.safeParse({ id: leituraIdRaw });
+    if (!parsedId.success) {
+        redirect('/admin/leituras');
+    }
+
+    const leituraId = parsedId.data.id;
+
+    const parsed = updateLeituraSchema.safeParse({
+        id: leituraId,
+        unidade_id: formData.get('unidade_id'),
+        tipo: formData.get('tipo'),
+        mes_referencia: formData.get('mes_referencia'),
+        data_leitura: formData.get('data_leitura'),
+        medicao: formData.get('medicao'),
+        valor: formData.get('valor'),
+    });
+
+    if (!parsed.success) {
+        redirect(buildEditarLeituraRedirect(leituraId, 'Dados inválidos para leitura', returnCondominioId, returnMes));
+    }
+
+    const { error: updateError } = await supabase
+        .from('leituras_mensais')
+        .update({
+            unidade_id: parsed.data.unidade_id,
+            tipo: parsed.data.tipo,
+            mes_referencia: parsed.data.mes_referencia,
+            data_leitura: parsed.data.data_leitura,
+            medicao: parsed.data.medicao,
+            valor: parsed.data.valor,
+        })
+        .eq('id', leituraId);
+
+    if (updateError) {
+        redirect(buildEditarLeituraRedirect(leituraId, 'Não foi possível atualizar a leitura', returnCondominioId, returnMes));
+    }
+
+    const { data: unidadeData } = await supabase
+        .from('unidades')
+        .select('condominio_id')
+        .eq('id', parsed.data.unidade_id)
+        .maybeSingle();
+
+    const condominioIdForReturn = unidadeData?.condominio_id || (isUuid(returnCondominioId) ? returnCondominioId : '');
+
+    const arquivos = formData
+        .getAll('fotos')
+        .filter((value): value is File => value instanceof File && value.size > 0);
+
+    if (arquivos.length > 0) {
+        let adminClient;
+        try {
+            adminClient = createAdminClient();
+        } catch {
+            redirect(buildEditarLeituraRedirect(leituraId, 'SUPABASE_SERVICE_ROLE_KEY não configurada para upload de fotos', condominioIdForReturn, parsed.data.mes_referencia));
+        }
+
+        const condominioId = condominioIdForReturn || 'condominio';
+
+        for (const arquivo of arquivos) {
+            const ext = arquivo.name.includes('.') ? arquivo.name.split('.').pop() : 'jpg';
+            const timestamp = Date.now();
+            const fileName = `${timestamp}-${Math.random().toString(36).slice(2)}.${ext}`;
+            const storagePath = `${condominioId}/${parsed.data.unidade_id}/${parsed.data.mes_referencia}/${parsed.data.tipo}/${fileName}`;
+
+            const arrayBuffer = await arquivo.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+
+            const { error: uploadError } = await adminClient.storage
+                .from('leitura-fotos')
+                .upload(storagePath, buffer, {
+                    contentType: arquivo.type || 'image/jpeg',
+                    upsert: false,
+                });
+
+            if (uploadError) {
+                redirect(buildEditarLeituraRedirect(leituraId, 'Erro no upload de uma das fotos', condominioIdForReturn, parsed.data.mes_referencia));
+            }
+
+            const { error: fotoError } = await supabase
+                .from('fotos_leitura')
+                .insert({
+                    leitura_id: leituraId,
+                    storage_path: storagePath,
+                });
+
+            if (fotoError) {
+                redirect(buildEditarLeituraRedirect(leituraId, 'Leitura salva, mas houve erro ao vincular foto', condominioIdForReturn, parsed.data.mes_referencia));
+            }
+        }
+    }
+
+    revalidatePath('/admin/leituras');
+    revalidatePath(`/admin/leituras/${leituraId}`);
+    revalidatePath('/admin');
+    revalidatePath('/app');
+    revalidatePath('/app/leituras');
+
+    const listQuery = new URLSearchParams({ updated: '1' });
+    if (isUuid(condominioIdForReturn)) {
+        listQuery.set('condominio_id', condominioIdForReturn);
+    }
+    listQuery.set('mes', parsed.data.mes_referencia);
+
+    redirect(`/admin/leituras?${listQuery.toString()}`);
+}
+
+export async function deleteLeitura(formData: FormData) {
+    const { supabase } = await ensureAdmin();
+    const returnCondominioId = String(formData.get('return_condominio_id') || '').trim();
+    const returnMes = String(formData.get('return_mes') || '').trim();
+
+    const parsed = deleteLeituraSchema.safeParse({ id: formData.get('id') });
+    if (!parsed.success) {
+        redirect(buildLeiturasRedirect(returnCondominioId, returnMes, { error: 'Leitura inválida' }));
+    }
+
+    const { data: fotos } = await supabase
+        .from('fotos_leitura')
+        .select('storage_path')
+        .eq('leitura_id', parsed.data.id);
+
+    if (fotos && fotos.length > 0) {
+        try {
+            const adminClient = createAdminClient();
+            const paths = fotos
+                .map((f) => f.storage_path as string)
+                .filter((p): p is string => Boolean(p));
+            if (paths.length > 0) {
+                await adminClient.storage.from('leitura-fotos').remove(paths);
+            }
+        } catch {
+            // Sem service role: segue exclusão da leitura. As fotos no storage podem ficar órfãs.
+        }
+    }
+
+    const { error } = await supabase
+        .from('leituras_mensais')
+        .delete()
+        .eq('id', parsed.data.id);
+
+    if (error) {
+        redirect(buildLeiturasRedirect(returnCondominioId, returnMes, { error: 'Não foi possível excluir a leitura' }));
+    }
+
+    revalidatePath('/admin/leituras');
+    revalidatePath('/admin');
+    revalidatePath('/app');
+    revalidatePath('/app/leituras');
+
+    redirect(buildLeiturasRedirect(returnCondominioId, returnMes, { deleted: '1' }));
 }
 
 export async function fecharMesLeituras(formData: FormData) {

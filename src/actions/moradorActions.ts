@@ -21,6 +21,23 @@ const enviarLeituraSchema = z.object({
     medicao: z.coerce.number().positive('Medição deve ser maior que zero'),
 });
 
+const MAX_FOTO_BYTES = 15 * 1024 * 1024;
+const MIMES_ACEITOS = new Set([
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/heic',
+    'image/heif',
+]);
+const EXT_PARA_MIME: Record<string, string> = {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    webp: 'image/webp',
+    heic: 'image/heic',
+    heif: 'image/heif',
+};
+
 function encodeMessage(message: string) {
     return encodeURIComponent(message);
 }
@@ -95,6 +112,19 @@ export async function enviarLeituraMorador(formData: FormData) {
         redirect(`${errPath}?error=${encodeMessage('Envie ao menos uma foto do medidor')}`);
     }
 
+    for (const foto of fotos) {
+        if (foto.size > MAX_FOTO_BYTES) {
+            redirect(`${errPath}?error=${encodeMessage(`A foto "${foto.name}" ultrapassa 15 MB. Reduza a resolução e tente novamente.`)}`);
+        }
+
+        const ext = getExtFromFileName(foto.name);
+        const tipoArquivo = (foto.type || EXT_PARA_MIME[ext] || '').toLowerCase();
+
+        if (!MIMES_ACEITOS.has(tipoArquivo)) {
+            redirect(`${errPath}?error=${encodeMessage(`Formato não suportado em "${foto.name}". Envie em JPG, PNG, WebP ou HEIC.`)}`);
+        }
+    }
+
     const mesReferencia = getMesAtual();
     const dataLeitura = getDataHojeIso();
 
@@ -140,16 +170,24 @@ export async function enviarLeituraMorador(formData: FormData) {
 
         const arrayBuffer = await foto.arrayBuffer();
         const fileBuffer = Buffer.from(arrayBuffer);
+        const contentType = (foto.type || EXT_PARA_MIME[ext] || 'image/jpeg').toLowerCase();
 
         const { error: uploadError } = await supabase.storage
             .from('leitura-fotos')
             .upload(storagePath, fileBuffer, {
-                contentType: foto.type || 'image/jpeg',
+                contentType,
                 upsert: false,
             });
 
         if (uploadError) {
-            redirect(`${errPath}?error=${encodeMessage('Erro ao enviar uma das fotos')}`);
+            const msg = uploadError.message?.toLowerCase() || '';
+            let userMsg = `Erro ao enviar "${foto.name}". Tente novamente.`;
+            if (msg.includes('mime') || msg.includes('content type')) {
+                userMsg = `Formato não suportado em "${foto.name}". Envie em JPG, PNG, WebP ou HEIC.`;
+            } else if (msg.includes('exceeds') || msg.includes('too large') || msg.includes('size')) {
+                userMsg = `A foto "${foto.name}" ultrapassa o limite de 15 MB.`;
+            }
+            redirect(`${errPath}?error=${encodeMessage(userMsg)}`);
         }
 
         const { error: fotoError } = await supabase

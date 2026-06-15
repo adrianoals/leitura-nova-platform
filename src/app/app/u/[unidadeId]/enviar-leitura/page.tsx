@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { FaArrowLeft, FaCamera, FaCheckCircle, FaCloudUploadAlt, FaFire, FaInfoCircle, FaTint, FaThermometerHalf } from 'react-icons/fa';
@@ -15,6 +16,7 @@ import {
 
 type LeituraTipoRow = {
     tipo: TipoLeitura;
+    criado_por_morador: boolean;
 };
 
 function getTipoIcon(tipo: TipoLeitura) {
@@ -79,14 +81,24 @@ export default async function EnviarLeituraPage({ params }: PageProps) {
 
     const { data: leiturasMesRaw } = await supabase
         .from('leituras_mensais')
-        .select('tipo')
+        .select('tipo, criado_por_morador')
         .eq('unidade_id', vinculo.unidadeId)
         .eq('mes_referencia', mesAtual);
 
     const leiturasMes = (leiturasMesRaw || []) as unknown as LeituraTipoRow[];
     const tiposEnviados = new Set(leiturasMes.map((l) => l.tipo));
+    const tiposLancadosPorAdmin = new Set(
+        leiturasMes.filter((l) => !l.criado_por_morador).map((l) => l.tipo)
+    );
+    const tiposEnviadosPorMorador = new Set(
+        leiturasMes.filter((l) => l.criado_por_morador).map((l) => l.tipo)
+    );
     const tiposPendentes = tiposPermitidos.filter((t) => !tiposEnviados.has(t));
     const todosEnviados = tiposPermitidos.length > 0 && tiposPendentes.length === 0;
+    const todosLancadosSoPeloAdmin =
+        todosEnviados
+        && tiposPermitidos.every((t) => tiposLancadosPorAdmin.has(t))
+        && tiposEnviadosPorMorador.size === 0;
 
     if (!envioHabilitado) {
         return (
@@ -143,7 +155,9 @@ export default async function EnviarLeituraPage({ params }: PageProps) {
                         <FaCheckCircle className="h-5 w-5 mt-0.5 text-green-600 shrink-0" />
                         <div>
                             <p className="text-sm font-semibold text-green-900">
-                                Todas as leituras de {formatMes(mesAtual)} já foram enviadas.
+                                {todosLancadosSoPeloAdmin
+                                    ? `As leituras de ${formatMes(mesAtual)} já foram lançadas pela administração.`
+                                    : `Todas as leituras de ${formatMes(mesAtual)} já foram enviadas.`}
                             </p>
                             <p className="text-sm text-green-800 mt-1">
                                 Para corrigir alguma leitura, entre em contato com a administração.
@@ -173,7 +187,9 @@ export default async function EnviarLeituraPage({ params }: PageProps) {
                 </div>
             </div>
 
-            <LeituraSubmitModal unidadeId={vinculo.unidadeId} />
+            <Suspense fallback={null}>
+                <LeituraSubmitModal unidadeId={vinculo.unidadeId} />
+            </Suspense>
 
             <form action={enviarLeituraMorador} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
                 <input type="hidden" name="unidade_id" value={vinculo.unidadeId} />
@@ -188,9 +204,12 @@ export default async function EnviarLeituraPage({ params }: PageProps) {
                     >
                         {tiposPermitidos.map((tipo) => {
                             const jaEnviada = tiposEnviados.has(tipo);
+                            const sufixo = tiposLancadosPorAdmin.has(tipo)
+                                ? ' — já lançada pela administração'
+                                : (jaEnviada ? ' — já enviada neste mês' : '');
                             return (
                                 <option key={tipo} value={tipo} disabled={jaEnviada}>
-                                    {formatTipo(tipo)} {jaEnviada ? '— já enviada neste mês' : ''}
+                                    {formatTipo(tipo)}{sufixo}
                                 </option>
                             );
                         })}
@@ -226,13 +245,13 @@ export default async function EnviarLeituraPage({ params }: PageProps) {
                             id="fotos"
                             name="fotos"
                             type="file"
-                            accept="image/jpeg,image/png,image/webp"
+                            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
                             multiple
                             required
                             className="mt-3 w-full text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-vscode-blue file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-vscode-blue-dark"
                         />
                         <p className="mt-2 text-xs text-slate-500">
-                            Envie ao menos 1 foto legivel (JPG, PNG ou WebP).
+                            Envie ao menos 1 foto legivel (JPG, PNG, WebP ou HEIC). Maximo 15 MB por foto.
                         </p>
                     </div>
                 </div>

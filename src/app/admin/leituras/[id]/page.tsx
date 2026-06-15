@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { FaArrowLeft, FaCalendarAlt, FaDoorOpen, FaFire, FaImage, FaTint } from 'react-icons/fa';
+import { FaArrowLeft, FaCalendarAlt, FaDoorOpen, FaFire, FaImage, FaPencilAlt, FaTint } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import DeleteLeituraButton from '@/components/admin/DeleteLeituraButton';
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ condominio_id?: string; mes?: string }>;
@@ -171,18 +172,40 @@ export default async function LeituraDetailPage({
         }
     }
 
+    const editarQuery = new URLSearchParams();
+    if (query.condominio_id) editarQuery.set('condominio_id', query.condominio_id);
+    if (query.mes && /^\d{4}-\d{2}$/.test(query.mes)) editarQuery.set('mes', query.mes);
+    const editarHref = `/admin/leituras/${leitura.id}/editar${editarQuery.toString() ? `?${editarQuery.toString()}` : ''}`;
+    const detalheLabel = `${unidade ? `${unidade.bloco} - ${unidade.apartamento}` : 'Unidade'} - ${formatTipo(leitura.tipo)} - ${formatMes(leitura.mes_referencia)}`;
+
     return (
         <div className="max-w-4xl mx-auto space-y-6">
-            <div className="flex items-center gap-4">
-                <Link
-                    href={backHref}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
-                >
-                    <FaArrowLeft className="h-4 w-4" />
-                </Link>
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Detalhe da Leitura</h1>
-                    <p className="text-sm text-slate-500">{condominioNome}</p>
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <Link
+                        href={backHref}
+                        className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                    >
+                        <FaArrowLeft className="h-4 w-4" />
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900">Detalhe da Leitura</h1>
+                        <p className="text-sm text-slate-500">{condominioNome}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Link
+                        href={editarHref}
+                        className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                        <FaPencilAlt className="h-3 w-3" /> Editar
+                    </Link>
+                    <DeleteLeituraButton
+                        leituraId={leitura.id}
+                        label={detalheLabel}
+                        returnCondominioId={query.condominio_id}
+                        returnMes={query.mes}
+                    />
                 </div>
             </div>
 
