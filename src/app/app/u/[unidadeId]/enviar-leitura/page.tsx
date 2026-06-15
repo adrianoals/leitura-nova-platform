@@ -1,11 +1,11 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { FaArrowLeft, FaCamera, FaCheckCircle, FaCloudUploadAlt, FaFire, FaInfoCircle, FaTint, FaThermometerHalf } from 'react-icons/fa';
+import { FaArrowLeft, FaCheckCircle, FaFire, FaInfoCircle, FaTint, FaThermometerHalf } from 'react-icons/fa';
 import { createClient } from '@/lib/supabase/server';
 import { resolveUnidadeContextById } from '@/lib/adminPreview';
-import { enviarLeituraMorador } from '@/actions/moradorActions';
 import LeituraSubmitModal from '@/components/morador/LeituraSubmitModal';
+import EnviarLeituraForm from '@/components/morador/EnviarLeituraForm';
 import {
     formatMes,
     formatTipo,
@@ -191,79 +191,13 @@ export default async function EnviarLeituraPage({ params }: PageProps) {
                 <LeituraSubmitModal unidadeId={vinculo.unidadeId} />
             </Suspense>
 
-            <form action={enviarLeituraMorador} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
-                <input type="hidden" name="unidade_id" value={vinculo.unidadeId} />
-
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-slate-700">Tipo de leitura</label>
-                    <select
-                        name="tipo"
-                        defaultValue={tiposPendentes[0] || ''}
-                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
-                        required
-                    >
-                        {tiposPermitidos.map((tipo) => {
-                            const jaEnviada = tiposEnviados.has(tipo);
-                            const sufixo = tiposLancadosPorAdmin.has(tipo)
-                                ? ' — já lançada pela administração'
-                                : (jaEnviada ? ' — já enviada neste mês' : '');
-                            return (
-                                <option key={tipo} value={tipo} disabled={jaEnviada}>
-                                    {formatTipo(tipo)}{sufixo}
-                                </option>
-                            );
-                        })}
-                    </select>
-                </div>
-
-                <div className="space-y-2">
-                    <label htmlFor="medicao" className="block text-sm font-medium text-slate-700">
-                        Medicao (m3)
-                    </label>
-                    <input
-                        id="medicao"
-                        name="medicao"
-                        type="number"
-                        step="0.001"
-                        min="0.001"
-                        placeholder="Ex: 123.456"
-                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
-                        required
-                    />
-                </div>
-
-                <div className="space-y-2">
-                    <label htmlFor="fotos" className="block text-sm font-medium text-slate-700">
-                        Fotos do medidor
-                    </label>
-                    <div className="rounded-xl border-2 border-dashed border-slate-300 p-4">
-                        <label htmlFor="fotos" className="flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100">
-                            <FaCloudUploadAlt className="h-4 w-4" />
-                            Selecionar fotos
-                        </label>
-                        <input
-                            id="fotos"
-                            name="fotos"
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-                            multiple
-                            required
-                            className="mt-3 w-full text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-vscode-blue file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-vscode-blue-dark"
-                        />
-                        <p className="mt-2 text-xs text-slate-500">
-                            Envie ao menos 1 foto legivel (JPG, PNG, WebP ou HEIC). Maximo 15 MB por foto.
-                        </p>
-                    </div>
-                </div>
-
-                <button
-                    type="submit"
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-vscode-blue py-3.5 text-sm font-semibold text-white shadow-lg shadow-vscode-blue/25 hover:bg-vscode-blue-dark transition-all"
-                >
-                    <FaCamera className="h-4 w-4" />
-                    Enviar leitura
-                </button>
-            </form>
+            <EnviarLeituraForm
+                unidadeId={vinculo.unidadeId}
+                tiposPermitidos={tiposPermitidos}
+                tiposEnviados={Array.from(tiposEnviados)}
+                tiposLancadosPorAdmin={Array.from(tiposLancadosPorAdmin)}
+                defaultTipo={tiposPendentes[0] || ''}
+            />
 
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-xs text-blue-900 flex items-start gap-2">
                 <FaInfoCircle className="h-4 w-4 mt-0.5 shrink-0" />
